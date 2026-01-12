@@ -96,7 +96,7 @@ function AppRoutes() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['aluno']}>
+          <ProtectedRoute allowedRoles={['aluno', 'admin']}>
             <AlunoDashboard />
           </ProtectedRoute>
         }
@@ -104,7 +104,7 @@ function AppRoutes() {
       <Route
         path="/treino/:treinoId"
         element={
-          <ProtectedRoute allowedRoles={['aluno']}>
+          <ProtectedRoute allowedRoles={['aluno', 'admin']}>
             <TreinoDia />
           </ProtectedRoute>
         }
@@ -112,7 +112,7 @@ function AppRoutes() {
       <Route
         path="/perfil"
         element={
-          <ProtectedRoute allowedRoles={['aluno']}>
+          <ProtectedRoute allowedRoles={['aluno', 'admin']}>
             <PerfilAluno />
           </ProtectedRoute>
         }

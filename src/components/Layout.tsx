@@ -44,6 +44,7 @@ export function Layout({ children }: LayoutProps) {
     { path: '/admin/exercicios', label: 'Exercícios', icon: Library },
     { path: '/admin/treinos', label: 'Treinos', icon: Calendar },
     { path: '/admin/calculadoras', label: 'Calculadoras', icon: Calculator },
+    { path: '/dashboard', label: 'Visão Aluno', icon: LayoutDashboard },
   ];
 
   const links = isAdmin ? adminLinks : alunoLinks;
