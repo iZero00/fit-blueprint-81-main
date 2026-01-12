@@ -3,11 +3,8 @@ import { Layout } from '@/components/Layout';
 import { DayCard } from '@/components/DayCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useTreinosDia, DiaSemana, TipoDia } from '@/hooks/useTreinos';
-import { Activity, Target, TrendingUp, Calendar } from 'lucide-react';
-
-const diasSemana: DiaSemana[] = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-const diasLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+import { useTreinosDia } from '@/hooks/useTreinos';
+import { Activity, Target, TrendingUp, Calendar, Dumbbell } from 'lucide-react';
 
 export default function AlunoDashboard() {
   const navigate = useNavigate();
@@ -15,25 +12,10 @@ export default function AlunoDashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
   const { data: treinos, isLoading: treinosLoading } = useTreinosDia(profile?.id);
 
-  // Get current day of week
-  const today = new Date().getDay();
-  const diasMap: DiaSemana[] = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-  const todayDia = diasMap[today];
+  // Sort treinos alphabetically (A, B, C...)
+  const sortedTreinos = treinos?.slice().sort((a, b) => a.nome.localeCompare(b.nome));
 
-  // Build weekly overview
-  const weeklyOverview = diasSemana.map((dia, index) => {
-    const treino = treinos?.find(t => t.dia_semana === dia);
-    return {
-      dia,
-      label: diasLabels[index],
-      tipo: (treino?.tipo_dia || 'descanso') as TipoDia,
-      grupo_muscular: treino?.grupo_muscular,
-      exercicios_total: 0, // Will be fetched separately if needed
-    };
-  });
-
-  // Calculate weekly stats
-  const treinosDays = weeklyOverview.filter((d) => d.tipo === 'treino').length;
+  const treinosCount = sortedTreinos?.length || 0;
 
   if (profileLoading || treinosLoading) {
     return (
@@ -54,7 +36,7 @@ export default function AlunoDashboard() {
             Olá, {profile?.nome?.split(' ')[0] || 'Aluno'}! 👋
           </h1>
           <p className="text-muted-foreground">
-            Confira seu plano de treinos da semana
+            Escolha um treino para começar
           </p>
         </div>
 
@@ -63,11 +45,11 @@ export default function AlunoDashboard() {
           <div className="card-hover bg-card rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <Calendar className="h-5 w-5 text-primary" />
+                <Dumbbell className="h-5 w-5 text-primary" />
               </div>
             </div>
-            <p className="text-2xl font-bold">{treinosDays}</p>
-            <p className="text-sm text-muted-foreground">Dias de treino</p>
+            <p className="text-2xl font-bold">{treinosCount}</p>
+            <p className="text-sm text-muted-foreground">Treinos disponíveis</p>
           </div>
 
           <div className="card-hover bg-card rounded-xl p-4">
@@ -101,65 +83,37 @@ export default function AlunoDashboard() {
           </div>
         </div>
 
-        {/* Weekly View */}
+        {/* Workouts List */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Sua semana</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            {weeklyOverview.map((day, index) => (
+          <h2 className="text-xl font-semibold mb-4">Seus Treinos</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {sortedTreinos?.map((treino, index) => (
               <div
-                key={day.dia}
+                key={treino.id}
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <DayCard
-                  label={day.label}
-                  tipo={day.tipo}
-                  grupoMuscular={day.grupo_muscular || undefined}
-                  exerciciosTotal={day.exercicios_total}
+                  label={`Treino ${treino.nome}`}
+                  tipo={treino.tipo_dia}
+                  grupoMuscular={treino.grupo_muscular || undefined}
+                  exerciciosTotal={0} // We could fetch this if needed, but keeping it simple for now
                   exerciciosFeitos={0}
-                  isToday={day.dia === todayDia}
-                  onClick={() => navigate(`/treino/${day.dia}`)}
+                  isToday={false} // Concept of "today" doesn't apply the same way
+                  onClick={() => navigate(`/treino/${treino.id}`)}
                 />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Today's Focus */}
-        {(() => {
-          const todayData = weeklyOverview.find((d) => d.dia === todayDia);
-          if (!todayData || todayData.tipo === 'descanso') return null;
-
-          return (
-            <div className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90 mb-1">Treino de hoje</p>
-                  <h3 className="text-xl font-bold">
-                    {todayData.grupo_muscular || 'Treino do dia'}
-                  </h3>
-                  <p className="text-sm opacity-90 mt-1">
-                    Confira os exercícios programados
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigate(`/treino/${todayDia}`)}
-                  className="bg-white/20 hover:bg-white/30 transition-colors px-6 py-3 rounded-xl font-medium"
-                >
-                  Iniciar treino
-                </button>
-              </div>
-            </div>
-          );
-        })()}
-
         {/* No training configured message */}
-        {treinos?.length === 0 && (
+        {treinosCount === 0 && (
           <div className="bg-muted rounded-2xl p-8 text-center">
             <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhum treino configurado</h3>
             <p className="text-muted-foreground">
-              Aguarde seu treinador configurar seus treinos semanais.
+              Aguarde seu treinador criar seus treinos.
             </p>
           </div>
         )}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAllProfiles, Profile } from '@/hooks/useProfile';
-import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useDeleteTreinoExercicio, DiaSemana, TipoDia } from '@/hooks/useTreinos';
+import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useDeleteTreinoExercicio, TipoDia } from '@/hooks/useTreinos';
 import { useExercicios } from '@/hooks/useExercicios';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,26 +24,6 @@ import { DayCard } from '@/components/DayCard';
 import { Dumbbell, Moon, Flame, Plus, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const diasSemana: DiaSemana[] = [
-  'segunda',
-  'terca',
-  'quarta',
-  'quinta',
-  'sexta',
-  'sabado',
-  'domingo',
-];
-
-const diasSemanaLabels: Record<DiaSemana, string> = {
-  segunda: 'Segunda',
-  terca: 'Terça',
-  quarta: 'Quarta',
-  quinta: 'Quinta',
-  sexta: 'Sexta',
-  sabado: 'Sábado',
-  domingo: 'Domingo',
-};
-
 const tipoDiaLabels: Record<TipoDia, string> = {
   treino: 'Treino',
   descanso: 'Descanso',
@@ -55,7 +35,12 @@ export default function AdminTreinos() {
   const { data: exercicios } = useExercicios();
   
   const [selectedAluno, setSelectedAluno] = useState<Profile | null>(null);
-  const [selectedDia, setSelectedDia] = useState<DiaSemana | null>(null);
+  const [selectedTreinoId, setSelectedTreinoId] = useState<string | null>(null);
+  
+  // Estado para criação de novo treino
+  const [isCreateTreinoOpen, setIsCreateTreinoOpen] = useState(false);
+  const [newTreinoNome, setNewTreinoNome] = useState('');
+
   const [isAddExerciseOpen, setIsAddExerciseOpen] = useState(false);
   const [newExercise, setNewExercise] = useState({
     exercicio_id: '',
@@ -65,35 +50,54 @@ export default function AdminTreinos() {
   });
 
   const { data: treinos } = useTreinosDia(selectedAluno?.id);
-  const selectedTreino = treinos?.find(t => t.dia_semana === selectedDia);
-  const { data: treinoExercicios } = useTreinoExercicios(selectedTreino?.id);
+  // Ordena treinos por nome (A, B, C...)
+  const sortedTreinos = treinos?.slice().sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const selectedTreino = treinos?.find(t => t.id === selectedTreinoId);
+  const { data: treinoExercicios } = useTreinoExercicios(selectedTreinoId || undefined);
   
   const upsertTreino = useUpsertTreinoDia();
   const createTreinoExercicio = useCreateTreinoExercicio();
   const deleteTreinoExercicio = useDeleteTreinoExercicio();
 
-  const getTreinoForDay = (dia: DiaSemana) => {
-    return treinos?.find((t) => t.dia_semana === dia);
+  const handleCreateTreino = async () => {
+    if (!selectedAluno || !newTreinoNome) return;
+
+    try {
+      await upsertTreino.mutateAsync({
+        aluno_id: selectedAluno.id,
+        nome: newTreinoNome,
+        dia_semana: null,
+        tipo_dia: 'treino',
+        grupo_muscular: null,
+      });
+      setIsCreateTreinoOpen(false);
+      setNewTreinoNome('');
+    } catch (error) {
+      // Erro tratado no hook
+    }
   };
 
   const handleTipoDiaChange = async (tipo: TipoDia) => {
-    if (!selectedAluno || !selectedDia) return;
+    if (!selectedAluno || !selectedTreino) return;
     
     await upsertTreino.mutateAsync({
       aluno_id: selectedAluno.id,
-      dia_semana: selectedDia,
+      nome: selectedTreino.nome,
+      dia_semana: null,
       tipo_dia: tipo,
-      grupo_muscular: selectedTreino?.grupo_muscular || null,
+      grupo_muscular: selectedTreino.grupo_muscular,
     });
   };
 
   const handleGrupoMuscularChange = async (grupo: string) => {
-    if (!selectedAluno || !selectedDia) return;
+    if (!selectedAluno || !selectedTreino) return;
     
     await upsertTreino.mutateAsync({
       aluno_id: selectedAluno.id,
-      dia_semana: selectedDia,
-      tipo_dia: selectedTreino?.tipo_dia || 'treino',
+      nome: selectedTreino.nome,
+      dia_semana: null,
+      tipo_dia: selectedTreino.tipo_dia,
       grupo_muscular: grupo,
     });
   };
@@ -133,11 +137,13 @@ export default function AdminTreinos() {
     <Layout>
       <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold">Montagem de Treinos</h1>
-          <p className="text-muted-foreground">
-            Configure os treinos semanais de cada aluno
-          </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold">Montagem de Treinos</h1>
+            <p className="text-muted-foreground">
+              Configure os treinos (A, B, C...) de cada aluno
+            </p>
+          </div>
         </div>
 
         {/* Student Selector */}
@@ -150,7 +156,7 @@ export default function AdminTreinos() {
             onValueChange={(value) => {
               const aluno = profiles?.find((a) => a.id === value);
               setSelectedAluno(aluno || null);
-              setSelectedDia(null);
+              setSelectedTreinoId(null);
             }}
           >
             <SelectTrigger className="w-full sm:w-80">
@@ -168,45 +174,82 @@ export default function AdminTreinos() {
 
         {selectedAluno && (
           <>
-            {/* Weekly Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              {diasSemana.map((dia, index) => {
-                const treino = getTreinoForDay(dia);
+            {/* Treinos List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Treinos Cadastrados</h2>
+                <Dialog open={isCreateTreinoOpen} onOpenChange={setIsCreateTreinoOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Treino
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Criar Novo Treino</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label>Identificação do Treino</Label>
+                        <Input 
+                          placeholder="Ex: A, B, Costas, Perna..." 
+                          value={newTreinoNome}
+                          onChange={(e) => setNewTreinoNome(e.target.value.toUpperCase())}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Use letras (A, B, C) ou nomes curtos.
+                        </p>
+                      </div>
+                      <Button onClick={handleCreateTreino} disabled={!newTreinoNome}>
+                        Criar
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
 
-                return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                {sortedTreinos?.map((treino, index) => (
                   <div
-                    key={dia}
+                    key={treino.id}
                     className="animate-fade-in"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div
                       className={cn(
                         'cursor-pointer transition-all',
-                        selectedDia === dia && 'ring-2 ring-primary ring-offset-2 rounded-xl'
+                        selectedTreinoId === treino.id && 'ring-2 ring-primary ring-offset-2 rounded-xl'
                       )}
-                      onClick={() => setSelectedDia(dia)}
+                      onClick={() => setSelectedTreinoId(treino.id)}
                     >
                       <DayCard
-                        label={diasSemanaLabels[dia]}
-                        tipo={treino?.tipo_dia || 'descanso'}
-                        grupoMuscular={treino?.grupo_muscular || undefined}
+                        label={treino.nome}
+                        tipo={treino.tipo_dia}
+                        grupoMuscular={treino.grupo_muscular || undefined}
                       />
                     </div>
                   </div>
-                );
-              })}
+                ))}
+                
+                {(!sortedTreinos || sortedTreinos.length === 0) && (
+                   <div className="col-span-full text-center py-8 bg-muted/50 rounded-xl border border-dashed">
+                     <p className="text-muted-foreground">Nenhum treino cadastrado para este aluno.</p>
+                   </div>
+                )}
+              </div>
             </div>
 
-            {/* Day Detail */}
-            {selectedDia && (
+            {/* Treino Detail */}
+            {selectedTreino && (
               <div className="bg-card rounded-2xl p-6 card-hover animate-slide-up">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-xl font-bold">
-                      {diasSemanaLabels[selectedDia]}
+                      Treino {selectedTreino.nome}
                     </h2>
                     <p className="text-muted-foreground">
-                      Configurar treino do dia
+                      Configurar exercícios
                     </p>
                   </div>
                 </div>
@@ -214,12 +257,12 @@ export default function AdminTreinos() {
                 {/* Day Type Selector */}
                 <div className="mb-6">
                   <label className="text-sm font-medium mb-3 block">
-                    Tipo do Dia
+                    Tipo do Treino
                   </label>
                   <div className="grid grid-cols-3 gap-3">
                     {(['treino', 'descanso', 'treino_leve'] as TipoDia[]).map(
                       (tipo) => {
-                        const isSelected = selectedTreino?.tipo_dia === tipo;
+                        const isSelected = selectedTreino.tipo_dia === tipo;
                         const Icon =
                           tipo === 'treino'
                             ? Dumbbell
@@ -260,12 +303,12 @@ export default function AdminTreinos() {
                 </div>
 
                 {/* Muscle Group */}
-                {selectedTreino?.tipo_dia !== 'descanso' && (
+                {selectedTreino.tipo_dia !== 'descanso' && (
                   <div className="mb-6">
                     <Label htmlFor="grupo">Grupo Muscular</Label>
                     <Input
                       id="grupo"
-                      value={selectedTreino?.grupo_muscular || ''}
+                      value={selectedTreino.grupo_muscular || ''}
                       onChange={(e) => handleGrupoMuscularChange(e.target.value)}
                       placeholder="Ex: Peito e Tríceps"
                       className="mt-2"
@@ -274,7 +317,7 @@ export default function AdminTreinos() {
                 )}
 
                 {/* Exercises List */}
-                {selectedTreino && selectedTreino.tipo_dia !== 'descanso' && (
+                {selectedTreino.tipo_dia !== 'descanso' && (
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <label className="text-sm font-medium">
@@ -403,7 +446,7 @@ export default function AdminTreinos() {
             <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-1">Selecione um aluno</h3>
             <p className="text-muted-foreground">
-              Escolha um aluno para configurar seus treinos semanais.
+              Escolha um aluno para configurar seus treinos.
             </p>
           </div>
         )}

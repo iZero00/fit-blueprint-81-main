@@ -8,7 +8,8 @@ export type TipoDia = 'treino' | 'descanso' | 'treino_leve';
 export interface TreinoDia {
   id: string;
   aluno_id: string;
-  dia_semana: DiaSemana;
+  dia_semana: DiaSemana | null;
+  nome: string;
   tipo_dia: TipoDia;
   grupo_muscular: string | null;
   created_at: string;
@@ -81,7 +82,7 @@ export function useUpsertTreinoDia() {
     mutationFn: async (treino: Omit<TreinoDia, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('treinos_dia')
-        .upsert(treino, { onConflict: 'aluno_id,dia_semana' })
+        .upsert(treino, { onConflict: 'aluno_id,nome' })
         .select()
         .single();
 

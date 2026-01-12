@@ -49,7 +49,8 @@ export interface Exercicio {
 export interface TreinoDia {
   id: string;
   aluno_id: string;
-  dia_semana: DiaSemana;
+  dia_semana: DiaSemana | null;
+  nome: string;
   tipo_dia: TipoDia;
   grupo_muscular?: string;
 }
@@ -75,7 +76,7 @@ export interface Checkin {
   data: string;
 }
 
-// Weekly Overview
+// Weekly Overview (Legacy - might be removed or adapted)
 export interface WeeklyOverview {
   dia: DiaSemana;
   label: string;

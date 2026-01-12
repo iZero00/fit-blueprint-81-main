@@ -193,7 +193,8 @@ export type Database = {
         Row: {
           aluno_id: string
           created_at: string
-          dia_semana: Database["public"]["Enums"]["dia_semana"]
+          dia_semana: Database["public"]["Enums"]["dia_semana"] | null
+          nome: string
           grupo_muscular: string | null
           id: string
           tipo_dia: Database["public"]["Enums"]["tipo_dia"]
@@ -202,7 +203,8 @@ export type Database = {
         Insert: {
           aluno_id: string
           created_at?: string
-          dia_semana: Database["public"]["Enums"]["dia_semana"]
+          dia_semana?: Database["public"]["Enums"]["dia_semana"] | null
+          nome: string
           grupo_muscular?: string | null
           id?: string
           tipo_dia?: Database["public"]["Enums"]["tipo_dia"]
@@ -211,7 +213,8 @@ export type Database = {
         Update: {
           aluno_id?: string
           created_at?: string
-          dia_semana?: Database["public"]["Enums"]["dia_semana"]
+          dia_semana?: Database["public"]["Enums"]["dia_semana"] | null
+          nome?: string
           grupo_muscular?: string | null
           id?: string
           tipo_dia?: Database["public"]["Enums"]["tipo_dia"]

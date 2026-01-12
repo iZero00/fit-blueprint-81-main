@@ -102,7 +102,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/treino/:dia"
+        path="/treino/:treinoId"
         element={
           <ProtectedRoute allowedRoles={['aluno']}>
             <TreinoDia />

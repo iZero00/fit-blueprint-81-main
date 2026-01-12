@@ -4,22 +4,12 @@ import { Layout } from '@/components/Layout';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useTreinosDia, useTreinoExercicios, DiaSemana, TipoDia } from '@/hooks/useTreinos';
+import { useTreinosDia, useTreinoExercicios, TipoDia } from '@/hooks/useTreinos';
 import { useCheckins, useUpsertCheckin } from '@/hooks/useCheckins';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Dumbbell, Moon, Flame, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-const diasSemanaLabels: Record<DiaSemana, string> = {
-  segunda: 'Segunda-feira',
-  terca: 'Terça-feira',
-  quarta: 'Quarta-feira',
-  quinta: 'Quinta-feira',
-  sexta: 'Sexta-feira',
-  sabado: 'Sábado',
-  domingo: 'Domingo',
-};
 
 const tipoDiaLabels: Record<TipoDia, string> = {
   treino: 'Treino',
@@ -28,13 +18,13 @@ const tipoDiaLabels: Record<TipoDia, string> = {
 };
 
 export default function TreinoDiaPage() {
-  const { dia } = useParams<{ dia: DiaSemana }>();
+  const { treinoId } = useParams<{ treinoId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
   const { data: treinos } = useTreinosDia(profile?.id);
   
-  const treino = treinos?.find(t => t.dia_semana === dia);
+  const treino = treinos?.find(t => t.id === treinoId);
   const { data: exercicios, isLoading } = useTreinoExercicios(treino?.id);
   
   const today = new Date().toISOString().split('T')[0];
@@ -54,7 +44,7 @@ export default function TreinoDiaPage() {
     }
   }, [checkins]);
 
-  if (!dia) {
+  if (!treinoId) {
     navigate('/dashboard');
     return null;
   }
@@ -136,7 +126,7 @@ export default function TreinoDiaPage() {
               {getIcon()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{diasSemanaLabels[dia]}</h1>
+              <h1 className="text-2xl font-bold">Treino {treino?.nome}</h1>
               <p className="text-muted-foreground">
                 {treino ? tipoDiaLabels[treino.tipo_dia] : 'Sem treino definido'}
               </p>
@@ -234,10 +224,10 @@ export default function TreinoDiaPage() {
           <div className="bg-card rounded-2xl p-8 text-center card-hover">
             <Dumbbell className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <h2 className="text-xl font-semibold mb-2">
-              Nenhum treino definido
+              Treino não encontrado
             </h2>
             <p className="text-muted-foreground">
-              Aguarde seu treinador configurar o treino para este dia.
+              Este treino não está disponível ou foi removido.
             </p>
           </div>
         )}
@@ -250,7 +240,7 @@ export default function TreinoDiaPage() {
               Nenhum exercício definido
             </h2>
             <p className="text-muted-foreground">
-              Aguarde seu treinador configurar os exercícios para este dia.
+              Aguarde seu treinador configurar os exercícios para este treino.
             </p>
           </div>
         )}
