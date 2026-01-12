@@ -82,6 +82,7 @@ export default function AdminTreinos() {
     if (!selectedAluno || !selectedTreino) return;
     
     await upsertTreino.mutateAsync({
+      id: selectedTreino.id,
       aluno_id: selectedAluno.id,
       nome: selectedTreino.nome,
       dia_semana: null,
@@ -94,6 +95,7 @@ export default function AdminTreinos() {
     if (!selectedAluno || !selectedTreino) return;
     
     await upsertTreino.mutateAsync({
+      id: selectedTreino.id,
       aluno_id: selectedAluno.id,
       nome: selectedTreino.nome,
       dia_semana: null,

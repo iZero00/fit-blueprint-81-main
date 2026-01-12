@@ -79,10 +79,47 @@ export function useUpsertTreinoDia() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (treino: Omit<TreinoDia, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (treino: Omit<TreinoDia, 'created_at' | 'updated_at'> & { id?: string }) => {
+      // If we have an ID, update the existing record
+      if (treino.id) {
+        const { id, ...updates } = treino;
+        const { data, error } = await supabase
+          .from('treinos_dia')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+      
+      // Otherwise, check if a workout with this name exists for this student
+      const { data: existing } = await supabase
+        .from('treinos_dia')
+        .select('id')
+        .eq('aluno_id', treino.aluno_id)
+        .eq('nome', treino.nome)
+        .maybeSingle();
+
+      if (existing) {
+        // If it exists, update it
+        const { id, ...updates } = treino;
+        const { data, error } = await supabase
+          .from('treinos_dia')
+          .update(updates)
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+
+      // If it doesn't exist, insert new
       const { data, error } = await supabase
         .from('treinos_dia')
-        .upsert(treino, { onConflict: 'aluno_id,nome' })
+        .insert(treino as any) // Type assertion needed for optional id
         .select()
         .single();
 
