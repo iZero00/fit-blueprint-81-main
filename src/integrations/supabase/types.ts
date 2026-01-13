@@ -120,6 +120,7 @@ export type Database = {
           peso_kg: number | null
           sexo: Database["public"]["Enums"]["sexo"] | null
           tmb: number | null
+          observacoes_treino: string | null
           updated_at: string
           user_id: string
         }
@@ -137,6 +138,7 @@ export type Database = {
           peso_kg?: number | null
           sexo?: Database["public"]["Enums"]["sexo"] | null
           tmb?: number | null
+          observacoes_treino?: string | null
           updated_at?: string
           user_id: string
         }
@@ -154,6 +156,7 @@ export type Database = {
           peso_kg?: number | null
           sexo?: Database["public"]["Enums"]["sexo"] | null
           tmb?: number | null
+          observacoes_treino?: string | null
           updated_at?: string
           user_id?: string
         }

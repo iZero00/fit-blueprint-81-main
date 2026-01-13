@@ -1,0 +1,1 @@
+alter table profiles add column observacoes_treino text;

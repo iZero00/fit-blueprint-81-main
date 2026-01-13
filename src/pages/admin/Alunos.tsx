@@ -60,6 +60,7 @@ const editFormSchema = z.object({
   altura_cm: z.coerce.number().min(0, "Altura inválida").optional(),
   sexo: z.enum(["masculino", "feminino"]).optional(),
   nivel_atividade: z.enum(['sedentario', 'leve', 'moderado', 'intenso', 'muito_intenso']).optional(),
+  observacoes_treino: z.string().optional(),
 });
 
 export default function AdminAlunos() {
@@ -90,6 +91,7 @@ export default function AdminAlunos() {
       altura_cm: undefined,
       sexo: undefined,
       nivel_atividade: undefined,
+      observacoes_treino: "",
     },
   });
 
@@ -131,6 +133,7 @@ export default function AdminAlunos() {
       altura_cm: aluno.altura_cm || undefined,
       sexo: (aluno.sexo as "masculino" | "feminino") || undefined,
       nivel_atividade: (aluno.nivel_atividade as any) || undefined,
+      observacoes_treino: aluno.observacoes_treino || '',
     });
     setIsEditOpen(true);
   };
@@ -333,9 +336,28 @@ export default function AdminAlunos() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={updateProfile.isPending}>
-                    {updateProfile.isPending ? "Salvando..." : "Salvar Alterações"}
-                  </Button>
+                  <div className="space-y-4">
+                    <FormField
+                      control={editForm.control}
+                      name="observacoes_treino"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sequência de Treinos / Observações</FormLabel>
+                          <FormControl>
+                            <textarea 
+                              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              placeholder="Ex: Treina 3 dias, descansa 1..." 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full" disabled={updateProfile.isPending}>
+                      {updateProfile.isPending ? "Salvando..." : "Salvar Alterações"}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </DialogContent>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Exercicio } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Play, Clock, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Clock, RotateCcw, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ExerciseCardProps {
@@ -81,34 +81,41 @@ export function ExerciseCard({
             </p>
           )}
 
-          {videoId && (
-            <div>
-              <button
-                onClick={() => setShowVideo(!showVideo)}
-                className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
-              >
-                <Play className="h-4 w-4" />
-                <span>{showVideo ? 'Ocultar vídeo' : 'Ver demonstração'}</span>
-                {showVideo ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </button>
-
-              {showVideo && (
-                <div className="mt-3 rounded-lg overflow-hidden aspect-video bg-muted">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    title={exercicio.nome}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
-                </div>
+          <div>
+            <button
+              onClick={() => setShowVideo(!showVideo)}
+              className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              {videoId ? <Play className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              <span>
+                {showVideo 
+                  ? 'Ocultar vídeo' 
+                  : (videoId ? 'Ver demonstração' : 'Buscar demonstração automática')}
+              </span>
+              {showVideo ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
               )}
-            </div>
-          )}
+            </button>
+
+            {showVideo && (
+              <div className="mt-3 rounded-lg overflow-hidden aspect-video bg-muted">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={videoId 
+                    ? `https://www.youtube.com/embed/${videoId}`
+                    : `https://www.youtube.com/embed?listType=search&list=execução ${encodeURIComponent(exercicio.nome)}`
+                  }
+                  title={exercicio.nome}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -83,6 +83,19 @@ export default function AlunoDashboard() {
           </div>
         </div>
 
+        {/* Workout Sequence / Observations */}
+        {profile?.observacoes_treino && (
+          <div className="bg-card rounded-xl p-6 card-hover border-l-4 border-primary">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Sequência de Treinos
+            </h3>
+            <p className="text-muted-foreground whitespace-pre-wrap">
+              {profile.observacoes_treino}
+            </p>
+          </div>
+        )}
+
         {/* Workouts List */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Seus Treinos</h2>

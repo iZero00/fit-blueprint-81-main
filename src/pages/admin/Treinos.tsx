@@ -136,6 +136,7 @@ export default function AdminTreinos() {
         dia_semana: null,
         tipo_dia: 'treino',
         grupo_muscular: null,
+        observacoes: null,
       });
       setIsCreateTreinoOpen(false);
       setNewTreinoNome('');

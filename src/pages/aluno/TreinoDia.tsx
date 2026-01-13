@@ -140,6 +140,16 @@ export default function TreinoDiaPage() {
               </span>
             </div>
           )}
+
+          {treino?.observacoes && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <h3 className="text-sm font-semibold mb-1">Observações do Treinador:</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {treino.observacoes}
+              </p>
+            </div>
+          )}
+
         </div>
 
         {/* Rest Day */}

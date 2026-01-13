@@ -13,6 +13,7 @@ export interface Profile {
   nivel_atividade: 'sedentario' | 'leve' | 'moderado' | 'intenso' | 'muito_intenso' | null;
   tmb: number | null;
   get: number | null;
+  observacoes_treino: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
