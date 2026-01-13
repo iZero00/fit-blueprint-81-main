@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAllProfiles, Profile } from '@/hooks/useProfile';
 import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useUpdateTreinoExercicio, useDeleteTreinoExercicio, useDeleteTreinoDia, TipoDia, TreinoExercicio, TreinoDia } from '@/hooks/useTreinos';
@@ -84,6 +84,14 @@ export default function AdminTreinos() {
       setObservacoesInput(selectedTreino.observacoes || '');
     }
   }, [selectedTreino]);
+
+  // Scroll to details on mobile when a workout is selected
+  const detailsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedTreinoId && detailsRef.current && window.innerWidth < 768) {
+      detailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedTreinoId]);
 
   // Derived Muscle Groups from Exercises
   const derivedMuscleGroups = treinoExercicios
