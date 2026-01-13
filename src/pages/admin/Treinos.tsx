@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAllProfiles, Profile } from '@/hooks/useProfile';
-import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useUpdateTreinoExercicio, useDeleteTreinoExercicio, useDeleteTreinoDia, TipoDia, TreinoExercicio } from '@/hooks/useTreinos';
+import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useUpdateTreinoExercicio, useDeleteTreinoExercicio, useDeleteTreinoDia, TipoDia, TreinoExercicio, TreinoDia } from '@/hooks/useTreinos';
 import { useExercicios } from '@/hooks/useExercicios';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +45,11 @@ export default function AdminTreinos() {
   // Estado para criação de novo treino
   const [isCreateTreinoOpen, setIsCreateTreinoOpen] = useState(false);
   const [newTreinoNome, setNewTreinoNome] = useState('');
+
+  // Estado para edição de treino
+  const [isEditTreinoOpen, setIsEditTreinoOpen] = useState(false);
+  const [editingTreino, setEditingTreino] = useState<TreinoDia | null>(null);
+  const [editTreinoNome, setEditTreinoNome] = useState('');
 
   const [isAddExerciseOpen, setIsAddExerciseOpen] = useState(false);
   const [newExercise, setNewExercise] = useState({
@@ -140,6 +145,32 @@ export default function AdminTreinos() {
       });
       setIsCreateTreinoOpen(false);
       setNewTreinoNome('');
+    } catch (error) {
+      // Erro tratado no hook
+    }
+  };
+
+  const handleEditTreino = (treino: TreinoDia) => {
+    setEditingTreino(treino);
+    setEditTreinoNome(treino.nome);
+    setIsEditTreinoOpen(true);
+  };
+
+  const handleUpdateTreinoName = async () => {
+    if (!editingTreino || !editTreinoNome) return;
+
+    try {
+      await upsertTreino.mutateAsync({
+        id: editingTreino.id,
+        aluno_id: editingTreino.aluno_id,
+        nome: editTreinoNome,
+        dia_semana: editingTreino.dia_semana,
+        tipo_dia: editingTreino.tipo_dia,
+        grupo_muscular: editingTreino.grupo_muscular,
+        observacoes: editingTreino.observacoes,
+      });
+      setIsEditTreinoOpen(false);
+      setEditingTreino(null);
     } catch (error) {
       // Erro tratado no hook
     }
@@ -267,6 +298,30 @@ export default function AdminTreinos() {
                     </div>
                   </DialogContent>
                 </Dialog>
+
+                <Dialog open={isEditTreinoOpen} onOpenChange={setIsEditTreinoOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Nome do Treino</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label>Identificação do Treino</Label>
+                        <Input 
+                          placeholder="Ex: A, B, Costas, Perna..." 
+                          value={editTreinoNome}
+                          onChange={(e) => setEditTreinoNome(e.target.value.toUpperCase())}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Use letras (A, B, C) ou nomes curtos.
+                        </p>
+                      </div>
+                      <Button onClick={handleUpdateTreinoName} disabled={!editTreinoNome}>
+                        Salvar
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -302,7 +357,7 @@ export default function AdminTreinos() {
 
             {/* Treino Detail */}
             {selectedTreino && (
-              <div className="bg-card rounded-2xl p-6 card-hover animate-slide-up">
+              <div ref={detailsRef} className="bg-card rounded-2xl p-6 card-hover animate-slide-up">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-xl font-bold">
