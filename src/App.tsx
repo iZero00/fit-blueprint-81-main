@@ -19,6 +19,7 @@ import PerfilAluno from "./pages/aluno/Perfil";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminAlunos from "./pages/admin/Alunos";
 import AdminExercicios from "./pages/admin/Exercicios";
+import AdminGruposMusculares from "./pages/admin/GruposMusculares";
 import AdminTreinos from "./pages/admin/Treinos";
 import AdminCalculadoras from "./pages/admin/Calculadoras";
 
@@ -140,6 +141,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminExercicios />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/grupos-musculares"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminGruposMusculares />
           </ProtectedRoute>
         }
       />

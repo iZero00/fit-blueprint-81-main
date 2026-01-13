@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Dumbbell,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,7 @@ export function Layout({ children }: LayoutProps) {
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/admin/alunos', label: 'Alunos', icon: Users },
     { path: '/admin/exercicios', label: 'Exercícios', icon: Library },
+    { path: '/admin/grupos-musculares', label: 'Grupos Musculares', icon: Dumbbell },
     { path: '/admin/treinos', label: 'Treinos', icon: Calendar },
     { path: '/admin/calculadoras', label: 'Calculadoras', icon: Calculator },
     { path: '/dashboard', label: 'Visão Aluno', icon: LayoutDashboard },

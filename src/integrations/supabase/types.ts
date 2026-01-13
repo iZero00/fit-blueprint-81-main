@@ -89,6 +89,24 @@ export type Database = {
         }
         Relationships: []
       }
+      grupos_musculares: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           altura_cm: number | null

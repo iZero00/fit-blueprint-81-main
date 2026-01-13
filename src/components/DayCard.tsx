@@ -1,5 +1,4 @@
-import { TipoDia, tipoDiaLabels } from '@/types';
-import { Dumbbell, Moon, Flame } from 'lucide-react';
+import { TipoDia } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface DayCardProps {
@@ -21,28 +20,6 @@ export function DayCard({
   isToday = false,
   onClick,
 }: DayCardProps) {
-  const getIcon = () => {
-    switch (tipo) {
-      case 'treino':
-        return <Dumbbell className="h-5 w-5" />;
-      case 'descanso':
-        return <Moon className="h-5 w-5" />;
-      case 'treino_leve':
-        return <Flame className="h-5 w-5" />;
-    }
-  };
-
-  const getStatusClasses = () => {
-    switch (tipo) {
-      case 'treino':
-        return 'status-treino';
-      case 'descanso':
-        return 'status-descanso';
-      case 'treino_leve':
-        return 'status-treino-leve';
-    }
-  };
-
   const progress = exerciciosTotal > 0 ? (exerciciosFeitos / exerciciosTotal) * 100 : 0;
 
   return (
@@ -55,19 +32,10 @@ export function DayCard({
     >
       <div className="flex items-center justify-between mb-3">
         <span className="font-semibold text-sm text-foreground">{label}</span>
-        <span
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-            getStatusClasses()
-          )}
-        >
-          {getIcon()}
-          {tipoDiaLabels[tipo]}
-        </span>
       </div>
 
       {grupoMuscular && (
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
+        <p className="text-sm text-muted-foreground mb-3">
           {grupoMuscular}
         </p>
       )}

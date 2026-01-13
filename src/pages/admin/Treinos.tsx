@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAllProfiles, Profile } from '@/hooks/useProfile';
-import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useDeleteTreinoExercicio, TipoDia } from '@/hooks/useTreinos';
+import { useTreinosDia, useTreinoExercicios, useUpsertTreinoDia, useCreateTreinoExercicio, useUpdateTreinoExercicio, useDeleteTreinoExercicio, useDeleteTreinoDia, TipoDia, TreinoExercicio } from '@/hooks/useTreinos';
 import { useExercicios } from '@/hooks/useExercicios';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -21,14 +32,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { DayCard } from '@/components/DayCard';
-import { Dumbbell, Moon, Flame, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Dumbbell, Moon, Flame, Plus, Trash2, Loader2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const tipoDiaLabels: Record<TipoDia, string> = {
-  treino: 'Treino',
-  descanso: 'Descanso',
-  treino_leve: 'Treino Leve',
-};
 
 export default function AdminTreinos() {
   const { data: profiles, isLoading: profilesLoading } = useAllProfiles();
@@ -49,6 +54,15 @@ export default function AdminTreinos() {
     descanso: '60s',
   });
 
+  const [isEditExerciseOpen, setIsEditExerciseOpen] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<TreinoExercicio | null>(null);
+  const [editExerciseForm, setEditExerciseForm] = useState({
+    exercicio_id: '',
+    series: '',
+    repeticoes: '',
+    descanso: '',
+  });
+
   const { data: treinos } = useTreinosDia(selectedAluno?.id);
   // Ordena treinos por nome (A, B, C...)
   const sortedTreinos = treinos?.slice().sort((a, b) => a.nome.localeCompare(b.nome));
@@ -56,9 +70,61 @@ export default function AdminTreinos() {
   const selectedTreino = treinos?.find(t => t.id === selectedTreinoId);
   const { data: treinoExercicios } = useTreinoExercicios(selectedTreinoId || undefined);
   
+  // Local state for observations input to avoid saving on every keystroke
+  const [observacoesInput, setObservacoesInput] = useState('');
+
+  // Sync local state with selected workout data
+  useEffect(() => {
+    if (selectedTreino) {
+      setObservacoesInput(selectedTreino.observacoes || '');
+    }
+  }, [selectedTreino]);
+
+  // Derived Muscle Groups from Exercises
+  const derivedMuscleGroups = treinoExercicios
+    ? [...new Set(treinoExercicios.map(t => t.exercicio?.grupo_muscular).filter(Boolean))].join(', ')
+    : '';
+
   const upsertTreino = useUpsertTreinoDia();
   const createTreinoExercicio = useCreateTreinoExercicio();
+  const updateTreinoExercicio = useUpdateTreinoExercicio();
   const deleteTreinoExercicio = useDeleteTreinoExercicio();
+  const deleteTreino = useDeleteTreinoDia();
+
+  const handleDeleteTreino = async (id: string) => {
+    try {
+      await deleteTreino.mutateAsync(id);
+      setSelectedTreinoId(null);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleEditExercise = (exercise: TreinoExercicio) => {
+    setEditingExercise(exercise);
+    setEditExerciseForm({
+      exercicio_id: exercise.exercicio_id,
+      series: exercise.series,
+      repeticoes: exercise.repeticoes,
+      descanso: exercise.descanso,
+    });
+    setIsEditExerciseOpen(true);
+  };
+
+  const handleUpdateExercise = async () => {
+    if (!editingExercise) return;
+
+    await updateTreinoExercicio.mutateAsync({
+      id: editingExercise.id,
+      exercicio_id: editExerciseForm.exercicio_id,
+      series: editExerciseForm.series,
+      repeticoes: editExerciseForm.repeticoes,
+      descanso: editExerciseForm.descanso,
+    });
+
+    setIsEditExerciseOpen(false);
+    setEditingExercise(null);
+  };
 
   const handleCreateTreino = async () => {
     if (!selectedAluno || !newTreinoNome) return;
@@ -78,29 +144,20 @@ export default function AdminTreinos() {
     }
   };
 
-  const handleTipoDiaChange = async (tipo: TipoDia) => {
+  const handleSaveObservacoes = async () => {
     if (!selectedAluno || !selectedTreino) return;
     
-    await upsertTreino.mutateAsync({
-      id: selectedTreino.id,
-      aluno_id: selectedAluno.id,
-      nome: selectedTreino.nome,
-      dia_semana: null,
-      tipo_dia: tipo,
-      grupo_muscular: selectedTreino.grupo_muscular,
-    });
-  };
+    // Only save if the value is different
+    if (observacoesInput === (selectedTreino.observacoes || '')) return;
 
-  const handleGrupoMuscularChange = async (grupo: string) => {
-    if (!selectedAluno || !selectedTreino) return;
-    
     await upsertTreino.mutateAsync({
       id: selectedTreino.id,
       aluno_id: selectedAluno.id,
       nome: selectedTreino.nome,
       dia_semana: null,
       tipo_dia: selectedTreino.tipo_dia,
-      grupo_muscular: grupo,
+      grupo_muscular: derivedMuscleGroups, // Update muscle groups based on current exercises
+      observacoes: observacoesInput,
     });
   };
 
@@ -211,7 +268,7 @@ export default function AdminTreinos() {
                 </Dialog>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="flex flex-col gap-3">
                 {sortedTreinos?.map((treino, index) => (
                   <div
                     key={treino.id}
@@ -254,73 +311,75 @@ export default function AdminTreinos() {
                       Configurar exercícios
                     </p>
                   </div>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Excluir Treino
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Treino {selectedTreino.nome}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Isso excluirá permanentemente o treino e todos os seus exercícios.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDeleteTreino(selectedTreino.id)}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
 
-                {/* Day Type Selector */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium mb-3 block">
-                    Tipo do Treino
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(['treino', 'descanso', 'treino_leve'] as TipoDia[]).map(
-                      (tipo) => {
-                        const isSelected = selectedTreino.tipo_dia === tipo;
-                        const Icon =
-                          tipo === 'treino'
-                            ? Dumbbell
-                            : tipo === 'descanso'
-                            ? Moon
-                            : Flame;
+                {/* Header Info with Auto Muscle Groups */}
+                <div className="mb-6 space-y-4">
+                  <div>
+                    <Label className="text-muted-foreground">Grupos Musculares (Automático)</Label>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {derivedMuscleGroups ? (
+                        derivedMuscleGroups.split(', ').map((grupo) => (
+                          <div key={grupo} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                            {grupo}
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">
+                          Adicione exercícios para ver os grupos musculares
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                        return (
-                          <button
-                            key={tipo}
-                            onClick={() => handleTipoDiaChange(tipo)}
-                            className={cn(
-                              'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
-                              isSelected
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:border-primary/50'
-                            )}
-                          >
-                            <Icon
-                              className={cn(
-                                'h-6 w-6',
-                                isSelected ? 'text-primary' : 'text-muted-foreground'
-                              )}
-                            />
-                            <span
-                              className={cn(
-                                'text-sm font-medium',
-                                isSelected ? 'text-primary' : 'text-muted-foreground'
-                              )}
-                            >
-                              {tipoDiaLabels[tipo]}
-                            </span>
-                          </button>
-                        );
-                      }
-                    )}
+                  <div>
+                    <Label htmlFor="obs">Observações para o Aluno</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        id="obs"
+                        value={observacoesInput}
+                        onChange={(e) => setObservacoesInput(e.target.value)}
+                        placeholder="Ex: Focar na execução lenta..."
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={handleSaveObservacoes}
+                        disabled={upsertTreino.isPending || observacoesInput === (selectedTreino.observacoes || '')}
+                      >
+                        {upsertTreino.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-
-                {/* Muscle Group */}
-                {selectedTreino.tipo_dia !== 'descanso' && (
-                  <div className="mb-6">
-                    <Label htmlFor="grupo">Grupo Muscular</Label>
-                    <Input
-                      id="grupo"
-                      value={selectedTreino.grupo_muscular || ''}
-                      onChange={(e) => handleGrupoMuscularChange(e.target.value)}
-                      placeholder="Ex: Peito e Tríceps"
-                      className="mt-2"
-                    />
-                  </div>
-                )}
 
                 {/* Exercises List */}
-                {selectedTreino.tipo_dia !== 'descanso' && (
-                  <div>
+                <div>
                     <div className="flex items-center justify-between mb-4">
                       <label className="text-sm font-medium">
                         Exercícios ({treinoExercicios?.length || 0})
@@ -395,6 +454,71 @@ export default function AdminTreinos() {
                           </div>
                         </DialogContent>
                       </Dialog>
+
+                      <Dialog open={isEditExerciseOpen} onOpenChange={setIsEditExerciseOpen}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Editar Exercício</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Exercício</Label>
+                              <Select
+                                value={editExerciseForm.exercicio_id}
+                                onValueChange={(v) => setEditExerciseForm({ ...editExerciseForm, exercicio_id: v })}
+                              >
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue placeholder="Selecione um exercício" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {exercicios?.map((ex) => (
+                                    <SelectItem key={ex.id} value={ex.id}>
+                                      {ex.nome} ({ex.grupo_muscular})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div>
+                                <Label>Séries</Label>
+                                <Input
+                                  value={editExerciseForm.series}
+                                  onChange={(e) => setEditExerciseForm({ ...editExerciseForm, series: e.target.value })}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label>Repetições</Label>
+                                <Input
+                                  value={editExerciseForm.repeticoes}
+                                  onChange={(e) => setEditExerciseForm({ ...editExerciseForm, repeticoes: e.target.value })}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label>Descanso</Label>
+                                <Input
+                                  value={editExerciseForm.descanso}
+                                  onChange={(e) => setEditExerciseForm({ ...editExerciseForm, descanso: e.target.value })}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <Button
+                              onClick={handleUpdateExercise}
+                              disabled={updateTreinoExercicio.isPending || !editExerciseForm.exercicio_id}
+                              className="w-full"
+                            >
+                              {updateTreinoExercicio.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                'Salvar Alterações'
+                              )}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
 
                     {treinoExercicios && treinoExercicios.length > 0 ? (
@@ -417,14 +541,24 @@ export default function AdminTreinos() {
                                 </p>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteTreinoExercicio.mutate(te.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditExercise(te)}
+                                className="text-muted-foreground hover:text-primary"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteTreinoExercicio.mutate(te.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -437,7 +571,6 @@ export default function AdminTreinos() {
                       </div>
                     )}
                   </div>
-                )}
               </div>
             )}
           </>

@@ -1,8 +1,20 @@
 import { useState } from 'react';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Layout } from '@/components/Layout';
 import { useAllProfiles, useUpdateProfile, Profile } from '@/hooks/useProfile';
+import { useCreateAluno } from '@/hooks/useCreateAluno';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +23,20 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Search,
   Edit,
   Eye,
   UserX,
   UserCheck,
   User,
+  Plus,
 } from 'lucide-react';
 
 const nivelAtividadeLabels: Record<string, string> = {
@@ -27,11 +47,93 @@ const nivelAtividadeLabels: Record<string, string> = {
   muito_intenso: 'Extremamente Ativo',
 };
 
+const formSchema = z.object({
+  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+});
+
+const editFormSchema = z.object({
+  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  idade: z.coerce.number().min(0, "Idade inválida").optional(),
+  peso_kg: z.coerce.number().min(0, "Peso inválido").optional(),
+  altura_cm: z.coerce.number().min(0, "Altura inválida").optional(),
+  sexo: z.enum(["masculino", "feminino"]).optional(),
+  nivel_atividade: z.enum(['sedentario', 'leve', 'moderado', 'intenso', 'muito_intenso']).optional(),
+});
+
 export default function AdminAlunos() {
   const { data: profiles, isLoading } = useAllProfiles();
   const updateProfile = useUpdateProfile();
+  const createAluno = useCreateAluno();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAluno, setSelectedAluno] = useState<Profile | null>(null);
+  const [editingAluno, setEditingAluno] = useState<Profile | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      nome: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const editForm = useForm<z.infer<typeof editFormSchema>>({
+    resolver: zodResolver(editFormSchema),
+    defaultValues: {
+      nome: "",
+      idade: undefined,
+      peso_kg: undefined,
+      altura_cm: undefined,
+      sexo: undefined,
+      nivel_atividade: undefined,
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await createAluno.mutateAsync({
+        nome: values.nome,
+        email: values.email,
+        password: values.password
+      });
+      setIsCreateOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const onEditSubmit = async (values: z.infer<typeof editFormSchema>) => {
+    if (!editingAluno) return;
+    try {
+      await updateProfile.mutateAsync({
+        id: editingAluno.id,
+        ...values,
+      });
+      setIsEditOpen(false);
+      setEditingAluno(null);
+      editForm.reset();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleEditClick = (aluno: Profile) => {
+    setEditingAluno(aluno);
+    editForm.reset({
+      nome: aluno.nome,
+      idade: aluno.idade || undefined,
+      peso_kg: aluno.peso_kg || undefined,
+      altura_cm: aluno.altura_cm || undefined,
+      sexo: (aluno.sexo as "masculino" | "feminino") || undefined,
+      nivel_atividade: (aluno.nivel_atividade as any) || undefined,
+    });
+    setIsEditOpen(true);
+  };
 
   const filteredAlunos = profiles?.filter((aluno) =>
     aluno.nome.toLowerCase().includes(searchTerm.toLowerCase())
@@ -62,6 +164,182 @@ export default function AdminAlunos() {
               {profiles?.filter((a) => a.ativo).length || 0} alunos ativos
             </p>
           </div>
+
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Criar Aluno
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Novo Aluno</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="nome"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome completo" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="email@exemplo.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="******" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={createAluno.isPending}>
+                    {createAluno.isPending ? "Criando..." : "Criar Aluno"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Aluno</DialogTitle>
+              </DialogHeader>
+              <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                  <FormField
+                    control={editForm.control}
+                    name="nome"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome completo" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="idade"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Idade</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="Anos" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="sexo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sexo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="masculino">Masculino</SelectItem>
+                              <SelectItem value="feminino">Feminino</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="peso_kg"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peso (kg)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.1" placeholder="kg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="altura_cm"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Altura (cm)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="cm" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={editForm.control}
+                    name="nivel_atividade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nível de Atividade</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o nível" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.entries(nivelAtividadeLabels).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={updateProfile.isPending}>
+                    {updateProfile.isPending ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Search */}
@@ -125,6 +403,16 @@ export default function AdminAlunos() {
               </div>
 
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1"
+                  onClick={() => handleEditClick(aluno)}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                  Editar
+                </Button>
+
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button

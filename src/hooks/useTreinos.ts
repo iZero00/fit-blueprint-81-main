@@ -12,6 +12,7 @@ export interface TreinoDia {
   nome: string;
   tipo_dia: TipoDia;
   grupo_muscular: string | null;
+  observacoes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,11 +44,38 @@ export function useTreinosDia(alunoId?: string) {
       
       const { data, error } = await supabase
         .from('treinos_dia')
-        .select('*')
+        .select(`
+          *,
+          treino_exercicios (
+            exercicio:exercicios (
+              grupo_muscular
+            )
+          )
+        `)
         .eq('aluno_id', alunoId);
 
       if (error) throw error;
-      return data as TreinoDia[];
+
+      // Calculate and populate grupo_muscular dynamically based on exercises
+      const treinosCalculados = data.map((treino: any) => {
+        const grupos = new Set<string>();
+        if (treino.treino_exercicios) {
+          treino.treino_exercicios.forEach((te: any) => {
+            if (te.exercicio?.grupo_muscular) {
+              grupos.add(te.exercicio.grupo_muscular);
+            }
+          });
+        }
+        
+        const gruposCalculados = Array.from(grupos).join(', ');
+        
+        return {
+          ...treino,
+          grupo_muscular: gruposCalculados || treino.grupo_muscular // Fallback to saved if empty (though calculated is preferred)
+        };
+      });
+
+      return treinosCalculados as TreinoDia[];
     },
     enabled: !!alunoId,
   });
@@ -79,7 +107,7 @@ export function useUpsertTreinoDia() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (treino: Omit<TreinoDia, 'created_at' | 'updated_at'> & { id?: string }) => {
+    mutationFn: async (treino: Omit<TreinoDia, 'created_at' | 'updated_at' | 'id'> & { id?: string }) => {
       // If we have an ID, update the existing record
       if (treino.id) {
         const { id, ...updates } = treino;
@@ -131,7 +159,7 @@ export function useUpsertTreinoDia() {
       toast.success('Treino salvo com sucesso!');
     },
     onError: (error) => {
-      toast.error('Erro ao salvar treino');
+      toast.error(`Erro ao salvar treino: ${error.message}`);
       console.error(error);
     },
   });
@@ -157,6 +185,55 @@ export function useCreateTreinoExercicio() {
     },
     onError: (error) => {
       toast.error('Erro ao adicionar exercício');
+      console.error(error);
+    },
+  });
+}
+
+export function useUpdateTreinoExercicio() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<TreinoExercicio> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('treino_exercicios')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treino_exercicios'] });
+      toast.success('Exercício atualizado com sucesso!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar exercício');
+      console.error(error);
+    },
+  });
+}
+
+export function useDeleteTreinoDia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('treinos_dia')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treinos_dia'] });
+      toast.success('Treino removido com sucesso!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao remover treino');
       console.error(error);
     },
   });

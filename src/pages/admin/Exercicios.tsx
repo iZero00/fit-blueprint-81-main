@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { useExercicios, useCreateExercicio, useDeleteExercicio, Exercicio } from '@/hooks/useExercicios';
+import { useExercicios, useCreateExercicio, useUpdateExercicio, useDeleteExercicio, Exercicio } from '@/hooks/useExercicios';
+import { useGruposMusculares } from '@/hooks/useGruposMusculares';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -14,68 +22,117 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Search,
   Trash2,
   Play,
   Dumbbell,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminExercicios() {
   const { data: exercicios, isLoading } = useExercicios();
+  const { data: gruposMusculares } = useGruposMusculares();
   const createExercicio = useCreateExercicio();
+  const updateExercicio = useUpdateExercicio();
   const deleteExercicio = useDeleteExercicio();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [grupoFilter, setGrupoFilter] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newExercicio, setNewExercicio] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
     nome: '',
     grupo_muscular: '',
-    categoria: '',
     video_youtube_url: '',
     observacoes: '',
   });
 
-  // Get unique categories
-  const categories = [...new Set(exercicios?.map((e) => e.categoria) || [])];
+  // Get unique muscle groups
+  const grupos = [...new Set(exercicios?.map((e) => e.grupo_muscular) || [])];
 
   const filteredExercicios = exercicios?.filter((ex) => {
     const matchesSearch = ex.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ex.grupo_muscular.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || ex.categoria === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesGrupo = !grupoFilter || ex.grupo_muscular === grupoFilter;
+    return matchesSearch && matchesGrupo;
   }) || [];
 
-  const handleCreateExercicio = async () => {
-    if (!newExercicio.nome || !newExercicio.grupo_muscular || !newExercicio.categoria) {
+  const handleSaveExercicio = async () => {
+    if (!formData.nome || !formData.grupo_muscular) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
-    await createExercicio.mutateAsync({
-      nome: newExercicio.nome,
-      grupo_muscular: newExercicio.grupo_muscular,
-      categoria: newExercicio.categoria,
-      video_youtube_url: newExercicio.video_youtube_url || null,
-      observacoes: newExercicio.observacoes || null,
-    });
+    try {
+      if (editingId) {
+        await updateExercicio.mutateAsync({
+          id: editingId,
+          nome: formData.nome,
+          grupo_muscular: formData.grupo_muscular,
+          categoria: formData.grupo_muscular,
+          video_youtube_url: formData.video_youtube_url || null,
+          observacoes: formData.observacoes || null,
+        });
+      } else {
+        await createExercicio.mutateAsync({
+          nome: formData.nome,
+          grupo_muscular: formData.grupo_muscular,
+          categoria: formData.grupo_muscular,
+          video_youtube_url: formData.video_youtube_url || null,
+          observacoes: formData.observacoes || null,
+        });
+      }
 
-    setNewExercicio({
+      handleCloseDialog();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleEditExercicio = (exercicio: Exercicio) => {
+    setEditingId(exercicio.id);
+    setFormData({
+      nome: exercicio.nome,
+      grupo_muscular: exercicio.grupo_muscular,
+      video_youtube_url: exercicio.video_youtube_url || '',
+      observacoes: exercicio.observacoes || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setFormData({
       nome: '',
       grupo_muscular: '',
-      categoria: '',
       video_youtube_url: '',
       observacoes: '',
     });
-    setIsDialogOpen(false);
   };
 
-  const handleDeleteExercicio = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este exercício?')) {
-      await deleteExercicio.mutateAsync(id);
+  const handleDeleteExercicio = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId) {
+      await deleteExercicio.mutateAsync(deleteId);
+      setDeleteId(null);
     }
   };
 
@@ -101,53 +158,51 @@ export default function AdminExercicios() {
             </p>
           </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Novo Exercício
-              </Button>
-            </DialogTrigger>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
+            <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Novo Exercício
+            </Button>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Novo Exercício</DialogTitle>
+                <DialogTitle>{editingId ? 'Editar Exercício' : 'Novo Exercício'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="nome">Nome *</Label>
                   <Input
                     id="nome"
-                    value={newExercicio.nome}
-                    onChange={(e) => setNewExercicio({ ...newExercicio, nome: e.target.value })}
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     placeholder="Ex: Supino Reto"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="grupo">Grupo Muscular *</Label>
-                    <Input
-                      id="grupo"
-                      value={newExercicio.grupo_muscular}
-                      onChange={(e) => setNewExercicio({ ...newExercicio, grupo_muscular: e.target.value })}
-                      placeholder="Ex: Peitoral"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="categoria">Categoria *</Label>
-                    <Input
-                      id="categoria"
-                      value={newExercicio.categoria}
-                      onChange={(e) => setNewExercicio({ ...newExercicio, categoria: e.target.value })}
-                      placeholder="Ex: Peito"
-                    />
+                    <Select
+                      value={formData.grupo_muscular}
+                      onValueChange={(value) => setFormData({ ...formData, grupo_muscular: value })}
+                    >
+                      <SelectTrigger id="grupo">
+                        <SelectValue placeholder="Selecione um grupo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {gruposMusculares?.map((grupo) => (
+                          <SelectItem key={grupo.id} value={grupo.nome}>
+                            {grupo.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="video">Link do YouTube</Label>
                   <Input
                     id="video"
-                    value={newExercicio.video_youtube_url}
-                    onChange={(e) => setNewExercicio({ ...newExercicio, video_youtube_url: e.target.value })}
+                    value={formData.video_youtube_url}
+                    onChange={(e) => setFormData({ ...formData, video_youtube_url: e.target.value })}
                     placeholder="https://youtube.com/watch?v=..."
                   />
                 </div>
@@ -155,20 +210,20 @@ export default function AdminExercicios() {
                   <Label htmlFor="obs">Observações</Label>
                   <Textarea
                     id="obs"
-                    value={newExercicio.observacoes}
-                    onChange={(e) => setNewExercicio({ ...newExercicio, observacoes: e.target.value })}
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                     placeholder="Dicas de execução..."
                   />
                 </div>
                 <Button
-                  onClick={handleCreateExercicio}
-                  disabled={createExercicio.isPending}
+                  onClick={handleSaveExercicio}
+                  disabled={createExercicio.isPending || updateExercicio.isPending}
                   className="w-full"
                 >
-                  {createExercicio.isPending ? (
+                  {createExercicio.isPending || updateExercicio.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Criar Exercício'
+                    editingId ? 'Salvar Alterações' : 'Criar Exercício'
                   )}
                 </Button>
               </div>
@@ -189,20 +244,20 @@ export default function AdminExercicios() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
-              variant={categoryFilter === null ? 'default' : 'outline'}
+              variant={grupoFilter === null ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setCategoryFilter(null)}
+              onClick={() => setGrupoFilter(null)}
             >
               Todos
             </Button>
-            {categories.map((cat) => (
+            {grupos.map((grupo) => (
               <Button
-                key={cat}
-                variant={categoryFilter === cat ? 'default' : 'outline'}
+                key={grupo}
+                variant={grupoFilter === grupo ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setCategoryFilter(cat)}
+                onClick={() => setGrupoFilter(grupo)}
               >
-                {cat}
+                {grupo}
               </Button>
             ))}
           </div>
@@ -216,26 +271,9 @@ export default function AdminExercicios() {
               className="bg-card rounded-xl overflow-hidden card-hover animate-fade-in"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* Video Thumbnail */}
-              <div className="aspect-video bg-muted relative group">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Dumbbell className="h-12 w-12 text-muted-foreground/30" />
-                </div>
-                {exercicio.video_youtube_url && (
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <Play className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="font-semibold">{exercicio.nome}</h3>
-                  <Badge variant="secondary" className="shrink-0">
-                    {exercicio.categoria}
-                  </Badge>
                 </div>
 
                 <p className="text-sm text-muted-foreground mb-3">
@@ -249,6 +287,14 @@ export default function AdminExercicios() {
                 )}
 
                 <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditExercicio(exercicio)}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -268,11 +314,36 @@ export default function AdminExercicios() {
             <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-1">Nenhum exercício encontrado</h3>
             <p className="text-muted-foreground">
-              {searchTerm || categoryFilter ? 'Tente ajustar sua busca.' : 'Crie seu primeiro exercício.'}
+              {searchTerm || grupoFilter ? 'Tente ajustar sua busca.' : 'Crie seu primeiro exercício.'}
             </p>
           </div>
         )}
       </div>
+      
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o exercício
+              e o removerá de todos os treinos vinculados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteExercicio.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
