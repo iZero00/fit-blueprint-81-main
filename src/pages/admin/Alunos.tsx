@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Layout } from '@/components/Layout';
-import { useAllProfiles, useUpdateProfile, Profile } from '@/hooks/useProfile';
+import { useAllProfiles, useUpdateProfile, useDeleteAluno, Profile } from '@/hooks/useProfile';
 import { useCreateAluno } from '@/hooks/useCreateAluno';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader as AlertDialogHeaderRoot,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,6 +51,7 @@ import {
   User,
   Plus,
   Lock,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -80,6 +92,7 @@ export default function AdminAlunos() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [passwordEmail, setPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const deleteAluno = useDeleteAluno();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -590,6 +603,37 @@ export default function AdminAlunos() {
                     </div>
                   </DialogContent>
                 </Dialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1 text-destructive border-destructive/40 hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeaderRoot>
+                      <AlertDialogTitle>
+                        Excluir aluno {aluno.nome}?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Isso vai apagar todos os treinos, exercícios e check-ins deste aluno. Essa ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeaderRoot>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => deleteAluno.mutate(aluno)}
+                      >
+                        Excluir aluno
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 <Button
                   variant="ghost"
