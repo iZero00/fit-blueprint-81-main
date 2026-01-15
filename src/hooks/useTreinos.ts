@@ -68,12 +68,14 @@ export function useTreinosDia(alunoId?: string) {
               (te.tipo === undefined || te.tipo === null || te.tipo === 'exercicio') &&
               te.exercicio?.grupo_muscular
             ) {
-              grupos.add(te.exercicio.grupo_muscular);
+              // Split by comma to handle cases where an exercise has multiple muscle groups
+              const exerciseGroups = te.exercicio.grupo_muscular.split(',');
+              exerciseGroups.forEach((g: string) => grupos.add(g.trim()));
             }
           });
         }
 
-        const gruposCalculados = Array.from(grupos).join(', ');
+        const gruposCalculados = Array.from(grupos).filter(Boolean).join(', ');
 
         return {
           ...treino,

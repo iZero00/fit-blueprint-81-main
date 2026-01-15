@@ -137,14 +137,15 @@ export default function AdminTreinos() {
 
   // Derived Muscle Groups from Exercises (only main exercises, excluding warm-up/cardio)
   const derivedMuscleGroups = treinoExercicios
-    ? [
-        ...new Set(
+    ? Array.from(
+        new Set(
           treinoExercicios
-            .filter(t => !t.tipo || t.tipo === 'exercicio')
-            .map(t => t.exercicio?.grupo_muscular)
+            .filter((t) => !t.tipo || t.tipo === 'exercicio')
+            .flatMap((t) => (t.exercicio?.grupo_muscular || '').split(','))
+            .map((g) => g.trim())
             .filter(Boolean),
         ),
-      ].join(', ')
+      ).join(', ')
     : '';
 
   const upsertTreino = useUpsertTreinoDia();
@@ -701,7 +702,9 @@ export default function AdminTreinos() {
                             <Label className="text-xs text-muted-foreground uppercase tracking-wider">
                               Configuração Atual
                             </Label>
-                            <p className="mt-1 font-medium">{selectedTreino.observacoes}</p>
+                            <p className="mt-1 font-medium whitespace-pre-line">
+                              {selectedTreino.observacoes}
+                            </p>
                           </div>
                         )}
                       </div>

@@ -9,6 +9,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 // Pages
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 // Aluno Pages
 import AlunoDashboard from "./pages/aluno/Dashboard";
@@ -92,6 +93,7 @@ function AppRoutes() {
           </PublicRoute>
         }
       />
+      <Route path="/recuperar-senha" element={<ResetPassword />} />
 
       {/* Aluno Routes */}
       <Route

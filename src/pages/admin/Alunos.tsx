@@ -5,8 +5,10 @@ import * as z from "zod";
 import { Layout } from '@/components/Layout';
 import { useAllProfiles, useUpdateProfile, Profile } from '@/hooks/useProfile';
 import { useCreateAluno } from '@/hooks/useCreateAluno';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Form,
   FormControl,
@@ -37,7 +39,9 @@ import {
   UserCheck,
   User,
   Plus,
+  Lock,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const nivelAtividadeLabels: Record<string, string> = {
   sedentario: 'Sedentário',
@@ -72,6 +76,10 @@ export default function AdminAlunos() {
   const [editingAluno, setEditingAluno] = useState<Profile | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [passwordAluno, setPasswordAluno] = useState<Profile | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordEmail, setPasswordEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -121,6 +129,40 @@ export default function AdminAlunos() {
       editForm.reset();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleOpenPasswordDialog = (aluno: Profile) => {
+    setPasswordAluno(aluno);
+    setPasswordEmail('');
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!passwordEmail) {
+      toast.error('Informe o e-mail do aluno');
+      return;
+    }
+
+    setIsSendingReset(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(passwordEmail, {
+        redirectTo: `${window.location.origin}/recuperar-senha`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('E-mail de redefinição de senha enviado');
+        setIsPasswordDialogOpen(false);
+        setPasswordAluno(null);
+        setPasswordEmail('');
+      }
+    } catch {
+      toast.error('Erro ao enviar e-mail de redefinição');
+    } finally {
+      setIsSendingReset(false);
     }
   };
 
@@ -499,6 +541,53 @@ export default function AdminAlunos() {
                         </div>
                       </div>
                     )}
+                  </DialogContent>
+                </Dialog>
+                <Dialog
+                  open={isPasswordDialogOpen && passwordAluno?.id === aluno.id}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setIsPasswordDialogOpen(false);
+                      setPasswordAluno(null);
+                      setPasswordEmail('');
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1"
+                      onClick={() => handleOpenPasswordDialog(aluno)}
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      Senha
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        Redefinir senha de {passwordAluno?.nome || aluno.nome}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium">E-mail do aluno</Label>
+                        <Input
+                          type="email"
+                          placeholder="email@exemplo.com"
+                          value={passwordEmail}
+                          onChange={(e) => setPasswordEmail(e.target.value)}
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleSendPasswordReset}
+                        disabled={isSendingReset}
+                      >
+                        {isSendingReset ? 'Enviando...' : 'Enviar link de redefinição'}
+                      </Button>
+                    </div>
                   </DialogContent>
                 </Dialog>
                 
