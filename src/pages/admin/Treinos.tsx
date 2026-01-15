@@ -321,26 +321,25 @@ export default function AdminTreinos() {
         </div>
 
         {selectedAluno ? (
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.7fr)] items-start">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.7fr)] items-start md:items-stretch">
             {/* Treinos List */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
+            <div className="space-y-4 md:pr-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-4">
                 <h2 className="text-lg font-semibold">Treinos Cadastrados</h2>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => handleCreateSpecialTreino('AQUECIMENTO')}
                     disabled={upsertTreino.isPending}
                   >
+                    <Flame className="w-4 h-4 mr-2" />
                     Aquecimento
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => handleCreateSpecialTreino('CARDIO')}
                     disabled={upsertTreino.isPending}
                   >
+                    <Activity className="w-4 h-4 mr-2" />
                     Cardio
                   </Button>
                   <Dialog open={isCreateTreinoOpen} onOpenChange={setIsCreateTreinoOpen}>
@@ -399,6 +398,8 @@ export default function AdminTreinos() {
                 </div>
               </div>
 
+              <div className="h-px w-full bg-border" />
+
               <div className="flex flex-col gap-3">
                 {sortedTreinos?.map((treino, index) => (
                   <div
@@ -431,7 +432,7 @@ export default function AdminTreinos() {
             </div>
 
             {/* Treino Detail */}
-            <div ref={detailsRef}>
+            <div ref={detailsRef} className="md:pl-4 md:border-l md:border-border">
             {selectedTreino && (
               <div className="bg-card rounded-2xl p-6 card-hover animate-slide-up">
                 <div className="flex items-center justify-between mb-6">
