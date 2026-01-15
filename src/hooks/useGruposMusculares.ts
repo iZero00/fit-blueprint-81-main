@@ -32,18 +32,23 @@ export function useCreateGrupoMuscular() {
         .from('grupos_musculares')
         .insert({ nome })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Erro ao criar grupo muscular');
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['grupos_musculares'] });
       toast.success('Grupo muscular criado com sucesso!');
     },
-    onError: (error) => {
-      toast.error('Erro ao criar grupo muscular');
+    onError: (error: any) => {
       console.error(error);
+      if (error?.code === '23505') {
+        toast.error('Já existe um grupo muscular com este nome.');
+      } else {
+        toast.error(error.message || 'Erro ao criar grupo muscular');
+      }
     },
   });
 }
@@ -58,18 +63,23 @@ export function useUpdateGrupoMuscular() {
         .update({ nome })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Grupo muscular não encontrado');
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['grupos_musculares'] });
       toast.success('Grupo muscular atualizado com sucesso!');
     },
-    onError: (error) => {
-      toast.error('Erro ao atualizar grupo muscular');
+    onError: (error: any) => {
       console.error(error);
+      if (error?.code === '23505') {
+        toast.error('Já existe um grupo muscular com este nome.');
+      } else {
+        toast.error(error.message || 'Erro ao atualizar grupo muscular');
+      }
     },
   });
 }
@@ -90,9 +100,9 @@ export function useDeleteGrupoMuscular() {
       queryClient.invalidateQueries({ queryKey: ['grupos_musculares'] });
       toast.success('Grupo muscular excluído com sucesso!');
     },
-    onError: (error) => {
-      toast.error('Erro ao excluir grupo muscular');
+    onError: (error: any) => {
       console.error(error);
+      toast.error(error.message || 'Erro ao excluir grupo muscular');
     },
   });
 }

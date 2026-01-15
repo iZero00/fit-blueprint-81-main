@@ -219,6 +219,7 @@ export type Database = {
           grupo_muscular: string | null
           id: string
           tipo_dia: Database["public"]["Enums"]["tipo_dia"]
+          ordem: number | null
           updated_at: string
         }
         Insert: {
@@ -229,6 +230,7 @@ export type Database = {
           grupo_muscular?: string | null
           id?: string
           tipo_dia?: Database["public"]["Enums"]["tipo_dia"]
+          ordem?: number | null
           updated_at?: string
         }
         Update: {
@@ -239,6 +241,7 @@ export type Database = {
           grupo_muscular?: string | null
           id?: string
           tipo_dia?: Database["public"]["Enums"]["tipo_dia"]
+          ordem?: number | null
           updated_at?: string
         }
         Relationships: [

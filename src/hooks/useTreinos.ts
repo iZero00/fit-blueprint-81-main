@@ -13,6 +13,7 @@ export interface TreinoDia {
   tipo_dia: TipoDia;
   grupo_muscular: string | null;
   observacoes: string | null;
+  ordem: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -120,7 +121,7 @@ export function useUpsertTreinoDia() {
     mutationFn: async (treino: Omit<TreinoDia, 'created_at' | 'updated_at' | 'id'> & { id?: string }) => {
       // If we have an ID, update the existing record
       if (treino.id) {
-        const { id, ...updates } = treino;
+        const { id, ordem: _ordem, ...updates } = treino;
         const { data, error } = await supabase
           .from('treinos_dia')
           .update(updates)
@@ -142,7 +143,7 @@ export function useUpsertTreinoDia() {
 
       if (existing) {
         // If it exists, update it
-        const { id, ...updates } = treino;
+        const { id, ordem: _ordemExisting, ...updates } = treino;
         const { data, error } = await supabase
           .from('treinos_dia')
           .update(updates)
@@ -155,9 +156,10 @@ export function useUpsertTreinoDia() {
       }
 
       // If it doesn't exist, insert new
+      const { ordem: _ordemInsert, ...toInsert } = treino;
       const { data, error } = await supabase
         .from('treinos_dia')
-        .insert(treino as any) // Type assertion needed for optional id
+        .insert(toInsert as any) // Type assertion needed for optional id
         .select()
         .single();
 
@@ -170,6 +172,32 @@ export function useUpsertTreinoDia() {
     },
     onError: (error) => {
       toast.error(`Erro ao salvar treino: ${error.message}`);
+      console.error(error);
+    },
+  });
+}
+
+export function useReorderTreinos() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (updates: { id: string; created_at: string }[]) => {
+      if (!updates.length) return;
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('treinos_dia')
+          .update({ created_at: update.created_at })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treinos_dia'] });
+    },
+    onError: (error) => {
+      toast.error(`Erro ao reordenar treinos: ${error.message}`);
       console.error(error);
     },
   });

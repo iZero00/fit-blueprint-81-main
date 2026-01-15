@@ -77,11 +77,24 @@ export default function AdminExercicios() {
       return;
     }
 
+    const normalizedNome = formData.nome.trim().toLowerCase();
+    const hasDuplicate =
+      (exercicios || []).some((ex) => {
+        const sameNome = ex.nome.trim().toLowerCase() === normalizedNome;
+        const isSameId = editingId && ex.id === editingId;
+        return sameNome && !isSameId;
+      });
+
+    if (hasDuplicate) {
+      toast.error('Já existe um exercício cadastrado com este nome');
+      return;
+    }
+
     try {
       if (editingId) {
         await updateExercicio.mutateAsync({
           id: editingId,
-          nome: formData.nome,
+          nome: formData.nome.trim(),
           grupo_muscular: formData.grupo_muscular,
           categoria: formData.grupo_muscular,
           video_youtube_url: formData.video_youtube_url || null,
@@ -89,7 +102,7 @@ export default function AdminExercicios() {
         });
       } else {
         await createExercicio.mutateAsync({
-          nome: formData.nome,
+          nome: formData.nome.trim(),
           grupo_muscular: formData.grupo_muscular,
           categoria: formData.grupo_muscular,
           video_youtube_url: formData.video_youtube_url || null,

@@ -32,7 +32,12 @@ export default function AlunoDashboard() {
       const rankA = getTreinoRank(a.nome);
       const rankB = getTreinoRank(b.nome);
       if (rankA !== rankB) return rankA - rankB;
-      return a.nome.localeCompare(b.nome);
+
+      const ordemA = a.ordem ?? 0;
+      const ordemB = b.ordem ?? 0;
+      if (ordemA !== ordemB) return ordemA - ordemB;
+
+      return a.created_at.localeCompare(b.created_at);
     });
 
   const especiais =
@@ -154,7 +159,7 @@ export default function AlunoDashboard() {
                             {isAquecimento ? 'Aquecimento' : 'Cardio'}
                           </p>
                           {treino.observacoes && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
                               {treino.observacoes}
                             </p>
                           )}
