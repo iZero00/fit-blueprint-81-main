@@ -552,6 +552,37 @@ export default function AdminAlunos() {
                             </p>
                           </div>
                         </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-center gap-2 text-destructive border-destructive/40 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Excluir aluno
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeaderRoot>
+                              <AlertDialogTitle>
+                                Excluir aluno {selectedAluno.nome}?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Isso vai apagar todos os treinos, exercícios e check-ins deste aluno. Essa ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeaderRoot>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => deleteAluno.mutate(selectedAluno)}
+                              >
+                                Excluir aluno
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                   </DialogContent>
@@ -603,38 +634,6 @@ export default function AdminAlunos() {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-1 text-destructive border-destructive/40 hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Excluir
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeaderRoot>
-                      <AlertDialogTitle>
-                        Excluir aluno {aluno.nome}?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Isso vai apagar todos os treinos, exercícios e check-ins deste aluno. Essa ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeaderRoot>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => deleteAluno.mutate(aluno)}
-                      >
-                        Excluir aluno
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                
                 <Button
                   variant="ghost"
                   size="sm"
