@@ -65,6 +65,7 @@ export interface TreinoExercicio {
   repeticoes: string;
   descanso: string;
   ordem: number;
+  tipo: 'aquecimento' | 'exercicio' | 'cardio';
 }
 
 // Check-in

@@ -4,7 +4,7 @@ import { DayCard } from '@/components/DayCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTreinosDia } from '@/hooks/useTreinos';
-import { Activity, Target, TrendingUp, Calendar, Dumbbell } from 'lucide-react';
+import { Activity, Target, TrendingUp, Calendar, Dumbbell, Flame } from 'lucide-react';
 
 export default function AlunoDashboard() {
   const navigate = useNavigate();
@@ -12,8 +12,38 @@ export default function AlunoDashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
   const { data: treinos, isLoading: treinosLoading } = useTreinosDia(profile?.id);
 
-  // Sort treinos alphabetically (A, B, C...)
-  const sortedTreinos = treinos?.slice().sort((a, b) => a.nome.localeCompare(b.nome));
+  const getTreinoRank = (nome: string) => {
+    const upper = nome.toUpperCase();
+    if (upper === 'AQUECIMENTO') return 0;
+    if (upper === 'CARDIO') return 2;
+    return 1;
+  };
+
+  const getTreinoLabel = (nome: string) => {
+    const upper = nome.toUpperCase();
+    if (upper === 'AQUECIMENTO') return 'Aquecimento';
+    if (upper === 'CARDIO') return 'Cardio';
+    return `Treino ${nome}`;
+  };
+
+  const sortedTreinos = treinos
+    ?.slice()
+    .sort((a, b) => {
+      const rankA = getTreinoRank(a.nome);
+      const rankB = getTreinoRank(b.nome);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.nome.localeCompare(b.nome);
+    });
+
+  const especiais =
+    sortedTreinos?.filter((t) =>
+      ['AQUECIMENTO', 'CARDIO'].includes(t.nome.toUpperCase())
+    ) || [];
+
+  const treinosNormais =
+    sortedTreinos?.filter(
+      (t) => !['AQUECIMENTO', 'CARDIO'].includes(t.nome.toUpperCase())
+    ) || [];
 
   const treinosCount = sortedTreinos?.length || 0;
 
@@ -96,29 +126,73 @@ export default function AlunoDashboard() {
           </div>
         )}
 
-        {/* Workouts List */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Seus Treinos</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {sortedTreinos?.map((treino, index) => (
-              <div
-                key={treino.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <DayCard
-                  label={`Treino ${treino.nome}`}
-                  tipo={treino.tipo_dia}
-                  grupoMuscular={treino.grupo_muscular || undefined}
-                  exerciciosTotal={0} // We could fetch this if needed, but keeping it simple for now
-                  exerciciosFeitos={0}
-                  isToday={false} // Concept of "today" doesn't apply the same way
-                  onClick={() => navigate(`/treino/${treino.id}`)}
-                />
-              </div>
-            ))}
+        {/* Aquecimento e Cardio */}
+        {especiais.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Aquecimento e Cardio</h2>
+            <div className="space-y-3">
+              {especiais.map((treino, index) => {
+                const upper = treino.nome.toUpperCase();
+                const isAquecimento = upper === 'AQUECIMENTO';
+                const Icon = isAquecimento ? Flame : Activity;
+
+                return (
+                  <button
+                    key={treino.id}
+                    type="button"
+                    onClick={() => navigate(`/treino/${treino.id}`)}
+                    className="w-full text-left bg-primary/5 hover:bg-primary/10 transition-colors rounded-2xl p-4 flex items-center gap-4 border border-primary/10 card-hover animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-primary">
+                            {isAquecimento ? 'Aquecimento' : 'Cardio'}
+                          </p>
+                          {treino.observacoes && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                              {treino.observacoes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Workouts List */}
+        {treinosNormais.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Seus Treinos</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {treinosNormais.map((treino, index) => (
+                <div
+                  key={treino.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <DayCard
+                    label={getTreinoLabel(treino.nome)}
+                    tipo={treino.tipo_dia}
+                    grupoMuscular={treino.grupo_muscular || undefined}
+                    exerciciosTotal={0}
+                    exerciciosFeitos={0}
+                    isToday={false}
+                    onClick={() => navigate(`/treino/${treino.id}`)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* No training configured message */}
         {treinosCount === 0 && (

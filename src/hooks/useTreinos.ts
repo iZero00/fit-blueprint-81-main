@@ -25,6 +25,7 @@ export interface TreinoExercicio {
   repeticoes: string;
   descanso: string;
   ordem: number;
+  tipo: 'aquecimento' | 'exercicio' | 'cardio';
   created_at: string;
   exercicio?: {
     id: string;
@@ -47,6 +48,7 @@ export function useTreinosDia(alunoId?: string) {
         .select(`
           *,
           treino_exercicios (
+            tipo,
             exercicio:exercicios (
               grupo_muscular
             )
@@ -61,17 +63,20 @@ export function useTreinosDia(alunoId?: string) {
         const grupos = new Set<string>();
         if (treino.treino_exercicios) {
           treino.treino_exercicios.forEach((te: any) => {
-            if (te.exercicio?.grupo_muscular) {
+            if (
+              (te.tipo === undefined || te.tipo === null || te.tipo === 'exercicio') &&
+              te.exercicio?.grupo_muscular
+            ) {
               grupos.add(te.exercicio.grupo_muscular);
             }
           });
         }
-        
+
         const gruposCalculados = Array.from(grupos).join(', ');
-        
+
         return {
           ...treino,
-          grupo_muscular: gruposCalculados || treino.grupo_muscular // Fallback to saved if empty (though calculated is preferred)
+          grupo_muscular: gruposCalculados || treino.grupo_muscular
         };
       });
 
@@ -97,7 +102,12 @@ export function useTreinoExercicios(treinoDiaId?: string) {
         .order('ordem');
 
       if (error) throw error;
-      return data as TreinoExercicio[];
+      const rows = (data || []) as any[];
+      const normalized = rows.map((row) => ({
+        tipo: row.tipo || 'exercicio',
+        ...row,
+      }));
+      return normalized as TreinoExercicio[];
     },
     enabled: !!treinoDiaId,
   });

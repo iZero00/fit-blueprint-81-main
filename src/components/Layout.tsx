@@ -62,10 +62,41 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to={isAdmin ? '/admin/dashboard' : '/dashboard'}>
-            <Logo size="sm" />
-          </Link>
+        <div className="container mx-auto px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Link to={isAdmin ? '/admin/dashboard' : '/dashboard'}>
+              <Logo size="sm" />
+            </Link>
+
+            {/* User Menu */}
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2">
+                <div className="text-right">
+                  <p className="text-sm font-medium">{displayName}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {isAdmin ? 'Administrador' : 'Aluno'}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
@@ -89,35 +120,6 @@ export function Layout({ children }: LayoutProps) {
               );
             })}
           </nav>
-
-          {/* User Menu */}
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2">
-              <div className="text-right">
-                <p className="text-sm font-medium">{displayName}</p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {isAdmin ? 'Administrador' : 'Aluno'}
-                </p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
         </div>
 
         {/* Mobile Navigation */}

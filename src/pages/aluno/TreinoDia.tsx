@@ -75,6 +75,14 @@ export default function TreinoDiaPage() {
   const totalExercicios = exercicios?.length || 0;
   const progress = totalExercicios > 0 ? (completedCount / totalExercicios) * 100 : 0;
 
+  const getTreinoTitle = () => {
+    if (!treino) return 'Treino';
+    const upper = treino.nome.toUpperCase();
+    if (upper === 'AQUECIMENTO') return 'Aquecimento';
+    if (upper === 'CARDIO') return 'Cardio';
+    return `Treino ${treino.nome}`;
+  };
+
   const getIcon = () => {
     switch (treino?.tipo_dia) {
       case 'treino':
@@ -126,7 +134,7 @@ export default function TreinoDiaPage() {
               {getIcon()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Treino {treino?.nome}</h1>
+              <h1 className="text-2xl font-bold">{getTreinoTitle()}</h1>
               <p className="text-muted-foreground">
                 {treino ? tipoDiaLabels[treino.tipo_dia] : 'Sem treino definido'}
               </p>
@@ -164,10 +172,8 @@ export default function TreinoDiaPage() {
           </div>
         )}
 
-        {/* Exercises */}
         {exercicios && exercicios.length > 0 && (
           <>
-            {/* Progress Bar */}
             <div className="bg-card rounded-xl p-4 card-hover">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Progresso do treino</span>
@@ -183,9 +189,7 @@ export default function TreinoDiaPage() {
               </div>
             </div>
 
-            {/* Exercise List */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Exercícios</h2>
               {exercicios.map((te, index) => (
                 <div
                   key={te.id}
@@ -214,7 +218,6 @@ export default function TreinoDiaPage() {
               ))}
             </div>
 
-            {/* Complete Button */}
             {progress === 100 && (
               <div className="bg-success/10 border border-success/20 rounded-xl p-6 text-center animate-fade-in">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-success" />
@@ -243,7 +246,7 @@ export default function TreinoDiaPage() {
         )}
 
         {/* Training day but no exercises */}
-        {treino && treino.tipo_dia !== 'descanso' && (!exercicios || exercicios.length === 0) && (
+        {treino && treino.tipo_dia !== 'descanso' && (!exercicios || exercicios.length === 0) && !['AQUECIMENTO', 'CARDIO'].includes(treino.nome.toUpperCase()) && (
           <div className="bg-card rounded-2xl p-8 text-center card-hover">
             <Dumbbell className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <h2 className="text-xl font-semibold mb-2">
