@@ -56,6 +56,48 @@ export type Database = {
           },
         ]
       }
+      treino_fotos: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data_foto: string
+          foto_url: string
+          id: string
+          treino_dia_id: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data_foto?: string
+          foto_url: string
+          id?: string
+          treino_dia_id: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data_foto?: string
+          foto_url?: string
+          id?: string
+          treino_dia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treino_fotos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_fotos_treino_dia_id_fkey"
+            columns: ["treino_dia_id"]
+            isOneToOne: false
+            referencedRelation: "treinos_dia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercicios: {
         Row: {
           categoria: string

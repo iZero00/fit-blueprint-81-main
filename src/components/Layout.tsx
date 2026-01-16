@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Dumbbell,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ export function Layout({ children }: LayoutProps) {
   const alunoLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/perfil', label: 'Perfil', icon: User },
+    { path: '/galeria', label: 'Galeria', icon: ImageIcon },
   ];
 
   const adminLinks = [
@@ -47,6 +49,7 @@ export function Layout({ children }: LayoutProps) {
     { path: '/admin/treinos', label: 'Treinos', icon: Calendar },
     { path: '/admin/calculadoras', label: 'Calculadoras', icon: Calculator },
     { path: '/dashboard', label: 'Visão Aluno', icon: LayoutDashboard },
+    { path: '/galeria', label: 'Galeria', icon: ImageIcon },
   ];
 
   const links = isAdmin ? adminLinks : alunoLinks;

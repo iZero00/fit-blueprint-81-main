@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { DayCard } from '@/components/DayCard';
@@ -15,6 +16,11 @@ export default function AlunoDashboard() {
   const { data: treinos, isLoading: treinosLoading } = useTreinosDia(profile?.id);
   const { data: checkins } = useCheckins(profile?.id);
   const resetSemana = useResetCheckinsSemana();
+
+  useEffect(() => {
+    const nome = profile?.nome ? `Dashboard de ${profile.nome}` : 'Dashboard';
+    document.title = `${nome} | BassiniFit`;
+  }, [profile?.nome]);
 
   const today = new Date();
   const todayIso = today.toISOString().split('T')[0];

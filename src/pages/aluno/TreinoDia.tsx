@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -6,9 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTreinosDia, useTreinoExercicios, TipoDia } from '@/hooks/useTreinos';
 import { useCheckins, useUpsertCheckin } from '@/hooks/useCheckins';
+import { useCreateTreinoFoto } from '@/hooks/useTreinoFotos';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ArrowLeft, Dumbbell, Moon, Flame, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const tipoDiaLabels: Record<TipoDia, string> = {
@@ -32,6 +35,8 @@ export default function TreinoDiaPage() {
   const upsertCheckin = useUpsertCheckin();
 
   const [localCheckins, setLocalCheckins] = useState<Record<string, boolean>>({});
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const createTreinoFoto = useCreateTreinoFoto();
 
   // Initialize local checkins from database
   useEffect(() => {
@@ -77,6 +82,53 @@ export default function TreinoDiaPage() {
     : 0;
   const progress = totalExercicios > 0 ? (completedCount / totalExercicios) * 100 : 0;
   const treinoConcluido = totalExercicios > 0 && completedCount === totalExercicios;
+
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!profile || !treino) return;
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const bucket = 'treino-fotos';
+    const extension = file.name.split('.').pop() || 'jpg';
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const path = `${profile.id}/${treino.id}/${unique}.${extension}`;
+
+    setIsUploadingPhoto(true);
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(path, file);
+
+      if (uploadError) {
+        console.error('Error uploading treino photo:', uploadError);
+        toast.error(uploadError.message || 'Erro ao enviar foto do treino');
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(path);
+
+      const fotoUrl = publicUrlData.publicUrl;
+      const todayDate = new Date().toISOString().split('T')[0];
+
+      await createTreinoFoto.mutateAsync({
+        aluno_id: profile.id,
+        treino_dia_id: treino.id,
+        foto_url: fotoUrl,
+        data_foto: todayDate,
+      });
+
+      event.target.value = '';
+    } catch (error) {
+      console.error('Error saving treino photo:', error);
+      toast.error('Erro ao salvar foto do treino');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const getTreinoTitle = () => {
     if (!treino) return 'Treino';
@@ -239,14 +291,39 @@ export default function TreinoDiaPage() {
             </div>
 
             {treinoConcluido && (
-              <div className="bg-success/10 border border-success/20 rounded-xl p-6 text-center animate-fade-in">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-success" />
-                <h3 className="text-lg font-semibold text-success mb-1">
-                  Treino Completo!
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Parabéns! Você completou todos os exercícios de hoje.
-                </p>
+              <div className="flex flex-col md:flex-row gap-4 animate-fade-in">
+                <div className="flex-1 bg-success/10 border border-success/20 rounded-xl p-6 text-center">
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-success" />
+                  <h3 className="text-lg font-semibold text-success mb-1">
+                    Treino completo!
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Parabéns, você concluiu todos os exercícios de hoje. Excelente trabalho!
+                  </p>
+                </div>
+
+                <div className="flex-1 bg-card border border-border/60 rounded-xl p-6">
+                  <h3 className="text-base font-semibold mb-1">
+                    Adicione uma foto do seu treino
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Registrar uma foto após o treino ajuda a acompanhar sua evolução e manter a motivação em alta.
+                  </p>
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      disabled={isUploadingPhoto || !profile || !treino}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Sua foto será salva na galeria com a data de hoje.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Apenas você tem acesso às suas fotos aqui na plataforma.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </>

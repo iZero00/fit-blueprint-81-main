@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AlunoDashboard from "./pages/aluno/Dashboard";
 import TreinoDia from "./pages/aluno/TreinoDia";
 import PerfilAluno from "./pages/aluno/Perfil";
+import GaleriaAluno from "./pages/aluno/Galeria";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -117,6 +118,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['aluno', 'admin']}>
             <PerfilAluno />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/galeria"
+        element={
+          <ProtectedRoute allowedRoles={['aluno', 'admin']}>
+            <GaleriaAluno />
           </ProtectedRoute>
         }
       />

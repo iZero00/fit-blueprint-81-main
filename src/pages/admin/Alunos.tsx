@@ -6,6 +6,9 @@ import { Layout } from '@/components/Layout';
 import { useAllProfiles, useUpdateProfile, useDeleteAluno, Profile } from '@/hooks/useProfile';
 import { useCreateAluno } from '@/hooks/useCreateAluno';
 import { supabase } from '@/integrations/supabase/client';
+import { useTreinosDia } from '@/hooks/useTreinos';
+import { useCheckins } from '@/hooks/useCheckins';
+import { useTreinoFotos, type TreinoFoto } from '@/hooks/useTreinoFotos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -52,6 +56,8 @@ import {
   Plus,
   Lock,
   Trash2,
+  Dumbbell,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -93,6 +99,72 @@ export default function AdminAlunos() {
   const [passwordEmail, setPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const deleteAluno = useDeleteAluno();
+  const [historyAluno, setHistoryAluno] = useState<Profile | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [selectedFotoHistorico, setSelectedFotoHistorico] = useState<TreinoFoto | null>(null);
+
+  const { data: treinosHistorico, isLoading: isLoadingTreinosHistorico } = useTreinosDia(historyAluno?.id);
+  const { data: checkinsHistorico, isLoading: isLoadingCheckinsHistorico } = useCheckins(historyAluno?.id);
+  const { data: fotosHistorico, isLoading: isLoadingFotosHistorico } = useTreinoFotos(historyAluno?.id);
+
+  const treinoHistoricoResumo = (() => {
+    if (!treinosHistorico || treinosHistorico.length === 0) return [];
+
+    const exerciciosPorTreino = new Map<string, string[]>();
+    treinosHistorico.forEach((treino) => {
+      const ids = (treino.treino_exercicios || [])
+        .map((te) => te.id)
+        .filter((id): id is string => Boolean(id));
+      exerciciosPorTreino.set(treino.id, ids);
+    });
+
+    const treinoPorExercicio = new Map<string, string>();
+    exerciciosPorTreino.forEach((ids, treinoId) => {
+      ids.forEach((id) => treinoPorExercicio.set(id, treinoId));
+    });
+
+    const datasPorTreino = new Map<string, Set<string>>();
+    (checkinsHistorico || []).forEach((checkin) => {
+      if (!checkin.feito) return;
+      const treinoId = treinoPorExercicio.get(checkin.treino_exercicio_id);
+      if (!treinoId) return;
+      let set = datasPorTreino.get(treinoId);
+      if (!set) {
+        set = new Set();
+        datasPorTreino.set(treinoId, set);
+      }
+      set.add(checkin.data);
+    });
+
+    const resumo = treinosHistorico.map((treino) => {
+      const datas = datasPorTreino.get(treino.id);
+      let ultimaData: string | null = null;
+      if (datas && datas.size > 0) {
+        ultimaData = Array.from(datas).sort().pop() || null;
+      }
+      const fotosTreino = (fotosHistorico || []).filter(
+        (foto) => foto.treino_dia_id === treino.id
+      );
+      const fotosCount = fotosTreino.length || 0;
+
+      return {
+        treino,
+        ultimaData,
+        treinado: !!ultimaData,
+        fotosCount,
+        fotosTreino,
+      };
+    });
+
+    return resumo;
+  })();
+
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -444,7 +516,21 @@ export default function AdminAlunos() {
                     <User className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{aluno.nome}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{aluno.nome}</h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleAlunoStatus(aluno.id, aluno.ativo)}
+                        className={aluno.ativo ? 'text-destructive hover:text-destructive' : 'text-success hover:text-success'}
+                      >
+                        {aluno.ativo ? (
+                          <UserX className="h-4 w-4" />
+                        ) : (
+                          <UserCheck className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {aluno.idade ? `${aluno.idade} anos` : 'Idade não informada'}
                       {aluno.sexo ? ` • ${aluno.sexo === 'masculino' ? 'M' : 'F'}` : ''}
@@ -479,11 +565,11 @@ export default function AdminAlunos() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 gap-1"
+                  className="w-full justify-center gap-1"
                   onClick={() => handleEditClick(aluno)}
                 >
                   <Edit className="h-3.5 w-3.5" />
@@ -495,7 +581,7 @@ export default function AdminAlunos() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-1"
+                      className="w-full justify-center gap-1"
                       onClick={() => setSelectedAluno(aluno)}
                     >
                       <Eye className="h-3.5 w-3.5" />
@@ -601,7 +687,7 @@ export default function AdminAlunos() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-1"
+                      className="w-full justify-center gap-1"
                       onClick={() => handleOpenPasswordDialog(aluno)}
                     >
                       <Lock className="h-3.5 w-3.5" />
@@ -634,18 +720,178 @@ export default function AdminAlunos() {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleAlunoStatus(aluno.id, aluno.ativo)}
-                  className={aluno.ativo ? 'text-destructive hover:text-destructive' : 'text-success hover:text-success'}
+                <Dialog
+                  open={isHistoryOpen && historyAluno?.id === aluno.id}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setIsHistoryOpen(false);
+                      setHistoryAluno(null);
+                    }
+                  }}
                 >
-                  {aluno.ativo ? (
-                    <UserX className="h-4 w-4" />
-                  ) : (
-                    <UserCheck className="h-4 w-4" />
-                  )}
-                </Button>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center gap-1"
+                      onClick={() => {
+                        setHistoryAluno(aluno);
+                        setIsHistoryOpen(true);
+                      }}
+                    >
+                      <Dumbbell className="h-3.5 w-3.5" />
+                      Treinos
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Treinos de {historyAluno?.nome || aluno.nome}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {(isLoadingTreinosHistorico ||
+                        isLoadingCheckinsHistorico ||
+                        isLoadingFotosHistorico) && (
+                        <div className="text-sm text-muted-foreground">
+                          Carregando histórico de treinos...
+                        </div>
+                      )}
+                      {!isLoadingTreinosHistorico &&
+                        (!treinosHistorico || treinosHistorico.length === 0) && (
+                          <div className="text-sm text-muted-foreground">
+                            Nenhum treino configurado para este aluno.
+                          </div>
+                        )}
+                      {!isLoadingTreinosHistorico &&
+                        treinosHistorico &&
+                        treinosHistorico.length > 0 && (
+                          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                            {treinoHistoricoResumo.map(
+                              ({ treino, ultimaData, treinado, fotosCount, fotosTreino }) => (
+                              <div
+                                key={treino.id}
+                                className="border border-border rounded-lg p-3 bg-muted/40"
+                              >
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+                                      <Dumbbell className="h-3.5 w-3.5" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium">
+                                        {treino.nome.toUpperCase() === 'AQUECIMENTO'
+                                          ? 'Aquecimento'
+                                          : treino.nome.toUpperCase() === 'CARDIO'
+                                          ? 'Cardio'
+                                          : `Treino ${treino.nome}`}
+                                      </p>
+                                      {treino.grupo_muscular && (
+                                        <p className="text-xs text-muted-foreground">
+                                          {treino.grupo_muscular}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                      treinado
+                                        ? 'bg-success/10 text-success'
+                                        : 'bg-muted text-muted-foreground'
+                                    }`}
+                                  >
+                                    {treinado ? 'Treinado' : 'Nunca treinou'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 text-xs">
+                                  <div>
+                                    <p className="text-muted-foreground">Último registro</p>
+                                    <p className="font-medium">
+                                      {ultimaData ? formatDate(ultimaData) : '-'}
+                                    </p>
+                                  </div>
+                                    <div className="flex items-center gap-2">
+                                      <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <p className="text-muted-foreground">
+                                        {fotosCount === 0
+                                          ? 'Nenhuma foto'
+                                          : fotosCount === 1
+                                          ? '1 foto'
+                                          : `${fotosCount} fotos`}
+                                      </p>
+                                    </div>
+                                </div>
+                                  {fotosTreino.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-3 gap-2">
+                                      {fotosTreino.map((foto) => (
+                                        <button
+                                          key={foto.id}
+                                          type="button"
+                                          className="relative overflow-hidden rounded-md border border-border/60 bg-background"
+                                          onClick={() => setSelectedFotoHistorico(foto)}
+                                        >
+                                          <img
+                                            src={foto.foto_url}
+                                            alt={`Foto do treino em ${formatDate(foto.data_foto)}`}
+                                            className="w-full h-20 object-cover"
+                                            loading="lazy"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                              </div>
+                              )
+                            )}
+                          </div>
+                        )}
+                      <Dialog
+                        open={!!selectedFotoHistorico}
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            setSelectedFotoHistorico(null);
+                          }
+                        }}
+                      >
+                        <DialogContent className="max-w-2xl">
+                          {selectedFotoHistorico && (
+                            <>
+                              <DialogHeader>
+                                <DialogTitle>{formatDate(selectedFotoHistorico.data_foto)}</DialogTitle>
+                                <DialogDescription>
+                                  {(() => {
+                                    const treinoFoto = treinosHistorico?.find(
+                                      (t) => t.id === selectedFotoHistorico.treino_dia_id
+                                    );
+                                    if (!treinoFoto) return 'Treino';
+                                    const upper = treinoFoto.nome.toUpperCase();
+                                    if (upper === 'AQUECIMENTO') return 'Aquecimento';
+                                    if (upper === 'CARDIO') return 'Cardio';
+                                    return `Treino ${treinoFoto.nome}`;
+                                  })()}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="w-full">
+                                  <img
+                                    src={selectedFotoHistorico.foto_url}
+                                    alt="Foto do treino"
+                                    className="w-full max-h-[70vh] object-contain rounded-lg"
+                                  />
+                                </div>
+                                <div className="flex justify-end">
+                                  <Button asChild variant="outline" size="sm">
+                                    <a href={selectedFotoHistorico.foto_url} download>
+                                      Baixar foto
+                                    </a>
+                                  </Button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           ))}

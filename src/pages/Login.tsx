@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
@@ -6,38 +6,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, ArrowRight, User } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [nome, setNome] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = 'Login | BassiniFit';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta instanceof HTMLMetaElement) {
+      meta.content = 'Acesse sua conta BassiniFit para acompanhar seus treinos personalizados e evolução.';
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await signUp(email, password, nome);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success('Conta criada com sucesso! Você já pode fazer login.');
-          setIsSignUp(false);
-        }
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast.error('Email ou senha incorretos');
       } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast.error('Email ou senha incorretos');
-        } else {
-          toast.success('Login realizado com sucesso!');
-          navigate('/dashboard');
-        }
+        toast.success('Login realizado com sucesso!');
+        navigate('/dashboard');
       }
     } catch (error) {
       toast.error('Ocorreu um erro. Tente novamente.');
@@ -47,7 +43,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <>
+      <div className="min-h-screen bg-background flex">
       {/* Left Side - Decorative */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/80" />
@@ -70,104 +67,87 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md space-y-8 animate-slide-up">
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <Logo size="lg" />
+        {/* Right Side - Login Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+          <div className="w-full max-w-md space-y-8 animate-slide-up">
+            <div className="text-center">
+              <div className="flex justify-center mb-6">
+                <Logo size="lg" />
+              </div>
+              <h2 className="text-2xl font-bold">
+                Bem-vindo de volta
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                Entre com suas credenciais para acessar
+              </p>
             </div>
-            <h2 className="text-2xl font-bold">
-              {isSignUp ? 'Criar conta' : 'Bem-vindo de volta'}
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              {isSignUp
-                ? 'Preencha os dados para criar sua conta'
-                : 'Entre com suas credenciais para acessar'}
-            </p>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {isSignUp && (
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome completo</Label>
+                <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="nome"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
-                    required={isSignUp}
+                    required
                   />
                 </div>
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                    minLength={6}
+                  />
+                </div>
               </div>
+
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Entrar
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="pt-2 text-center">
+              <p className="text-xs text-muted-foreground mb-1">
+                Ainda não tem acesso?
+              </p>
+              <a
+                href="https://wa.me/5567993073133?text=Ol%C3%A1%2C%20gostaria%20de%20treinar%20com%20o%20BassiniFit%20e%20preciso%20de%20acesso%20%C3%A0%20plataforma."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-sm font-medium text-primary hover:underline"
+              >
+                Falar com o treinador no WhatsApp
+              </a>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-12 text-base font-medium"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  {isSignUp ? 'Criar conta' : 'Entrar'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isSignUp
-                ? 'Já tem uma conta? Faça login'
-                : 'Não tem conta? Crie uma agora'}
-            </button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
