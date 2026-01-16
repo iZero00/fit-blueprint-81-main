@@ -4,13 +4,30 @@ import { DayCard } from '@/components/DayCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTreinosDia } from '@/hooks/useTreinos';
-import { Activity, Target, TrendingUp, Calendar, Dumbbell, Flame } from 'lucide-react';
+import { useCheckins, useResetCheckinsSemana } from '@/hooks/useCheckins';
+import { Button } from '@/components/ui/button';
+import { Activity, Target, TrendingUp, Calendar, Dumbbell, Flame, CheckCircle2, RotateCcw } from 'lucide-react';
 
 export default function AlunoDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
   const { data: treinos, isLoading: treinosLoading } = useTreinosDia(profile?.id);
+  const { data: checkins } = useCheckins(profile?.id);
+  const resetSemana = useResetCheckinsSemana();
+
+  const today = new Date();
+  const todayIso = today.toISOString().split('T')[0];
+
+  const dayOfWeek = today.getDay();
+  const diffToMonday = (dayOfWeek + 6) % 7;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - diffToMonday);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const weekStartIso = weekStart.toISOString().split('T')[0];
+  const weekEndIso = weekEnd.toISOString().split('T')[0];
 
   const getTreinoRank = (nome: string) => {
     const upper = nome.toUpperCase();
@@ -51,6 +68,35 @@ export default function AlunoDashboard() {
     ) || [];
 
   const treinosCount = sortedTreinos?.length || 0;
+
+  const checkinsTodayMap = new Map<string, boolean>();
+  (checkins || [])
+    .filter((c) => c.data === todayIso && c.feito)
+    .forEach((c) => {
+      checkinsTodayMap.set(c.treino_exercicio_id, true);
+    });
+
+  const treinosNormaisWithProgress = treinosNormais.map((treino) => {
+    const exerciciosIds =
+      treino.treino_exercicios?.map((te) => te.id).filter(Boolean) || [];
+    const total = exerciciosIds.length;
+    const feitos = exerciciosIds.filter((id) => checkinsTodayMap.get(id as string)).length;
+    const concluido = total > 0 && feitos === total;
+    return { treino, total, feitos, concluido };
+  });
+
+  const allTreinosConcluidos =
+    treinosNormaisWithProgress.length > 0 &&
+    treinosNormaisWithProgress.every((t) => t.concluido);
+
+  const handleResetSemana = () => {
+    if (!profile) return;
+    resetSemana.mutate({
+      alunoId: profile.id,
+      startDate: weekStartIso,
+      endDate: weekEndIso,
+    });
+  };
 
   if (profileLoading || treinosLoading) {
     return (
@@ -142,11 +188,9 @@ export default function AlunoDashboard() {
                 const Icon = isAquecimento ? Flame : Activity;
 
                 return (
-                  <button
+                  <div
                     key={treino.id}
-                    type="button"
-                    onClick={() => navigate(`/treino/${treino.id}`)}
-                    className="w-full text-left bg-primary/5 hover:bg-primary/10 transition-colors rounded-2xl p-4 flex items-center gap-4 border border-primary/10 card-hover animate-fade-in"
+                    className="w-full text-left bg-primary/5 rounded-2xl p-4 flex items-center gap-4 border border-primary/10 card-hover animate-fade-in cursor-default select-none"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="p-3 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -166,7 +210,7 @@ export default function AlunoDashboard() {
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -174,11 +218,11 @@ export default function AlunoDashboard() {
         )}
 
         {/* Workouts List */}
-        {treinosNormais.length > 0 && (
+        {treinosNormaisWithProgress.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Seus Treinos</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {treinosNormais.map((treino, index) => (
+              {treinosNormaisWithProgress.map(({ treino, total, feitos, concluido }, index) => (
                 <div
                   key={treino.id}
                   className="animate-fade-in"
@@ -188,14 +232,50 @@ export default function AlunoDashboard() {
                     label={getTreinoLabel(treino.nome)}
                     tipo={treino.tipo_dia}
                     grupoMuscular={treino.grupo_muscular || undefined}
-                    exerciciosTotal={0}
-                    exerciciosFeitos={0}
+                    exerciciosTotal={total}
+                    exerciciosFeitos={feitos}
                     isToday={false}
                     onClick={() => navigate(`/treino/${treino.id}`)}
                   />
                 </div>
               ))}
             </div>
+            {allTreinosConcluidos && (
+              <div className="mt-4 bg-success/10 border border-success/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-success/20 text-success flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-success">
+                      Treinos da semana concluídos!
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Parabéns! Você completou todos os treinos disponíveis.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetSemana}
+                  disabled={resetSemana.isPending}
+                  className="self-start sm:self-auto border-success text-success hover:bg-success/10"
+                >
+                  {resetSemana.isPending ? (
+                    <>
+                      <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                      Resetando...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Resetar semana
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

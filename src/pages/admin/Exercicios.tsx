@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useExercicios, useCreateExercicio, useUpdateExercicio, useDeleteExercicio, Exercicio } from '@/hooks/useExercicios';
 import { useGruposMusculares } from '@/hooks/useGruposMusculares';
+import { getYoutubeId } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -218,6 +219,19 @@ export default function AdminExercicios() {
                     onChange={(e) => setFormData({ ...formData, video_youtube_url: e.target.value })}
                     placeholder="https://youtube.com/watch?v=..."
                   />
+                  {formData.video_youtube_url && getYoutubeId(formData.video_youtube_url) && (
+                    <div className="mt-2 rounded-lg overflow-hidden aspect-video bg-muted">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${getYoutubeId(formData.video_youtube_url)}`}
+                        title="Preview do vídeo"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="obs">Observações</Label>
@@ -245,8 +259,8 @@ export default function AdminExercicios() {
         </div>
 
         {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="space-y-3">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar exercício..."

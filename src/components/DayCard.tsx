@@ -21,17 +21,24 @@ export function DayCard({
   onClick,
 }: DayCardProps) {
   const progress = exerciciosTotal > 0 ? (exerciciosFeitos / exerciciosTotal) * 100 : 0;
+  const isCompleted = exerciciosTotal > 0 && exerciciosFeitos >= exerciciosTotal;
 
   return (
     <button
       onClick={onClick}
       className={cn(
         'day-card bg-card w-full text-left transition-all hover:scale-[1.02]',
-        isToday && 'ring-2 ring-primary ring-offset-2'
+        isToday && !isCompleted && 'ring-2 ring-primary ring-offset-2',
+        isCompleted && 'ring-2 ring-success ring-offset-2'
       )}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="font-semibold text-sm text-foreground">{label}</span>
+        {isCompleted && (
+          <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/10 text-success uppercase tracking-wide">
+            Concluído
+          </span>
+        )}
       </div>
 
       {grupoMuscular && (

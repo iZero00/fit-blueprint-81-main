@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface Checkin {
   id: string;
@@ -53,6 +54,39 @@ export function useUpsertCheckin() {
     },
     onError: (error) => {
       console.error('Error upserting checkin:', error);
+    },
+  });
+}
+
+export function useResetCheckinsSemana() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      alunoId,
+      startDate,
+      endDate,
+    }: {
+      alunoId: string;
+      startDate: string;
+      endDate: string;
+    }) => {
+      const { error } = await supabase
+        .from('checkins')
+        .delete()
+        .eq('aluno_id', alunoId)
+        .gte('data', startDate)
+        .lte('data', endDate);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checkins'] });
+      toast.success('Semana resetada com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error resetting week checkins:', error);
+      toast.error('Erro ao resetar semana de treinos.');
     },
   });
 }

@@ -16,6 +16,13 @@ export interface TreinoDia {
   ordem: number | null;
   created_at: string;
   updated_at: string;
+  treino_exercicios?: {
+    id?: string;
+    tipo?: 'aquecimento' | 'exercicio' | 'cardio' | null;
+    exercicio?: {
+      grupo_muscular: string | null;
+    } | null;
+  }[];
 }
 
 export interface TreinoExercicio {
@@ -49,6 +56,7 @@ export function useTreinosDia(alunoId?: string) {
         .select(`
           *,
           treino_exercicios (
+            id,
             tipo,
             exercicio:exercicios (
               grupo_muscular

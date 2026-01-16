@@ -71,9 +71,12 @@ export default function TreinoDiaPage() {
     }
   };
 
-  const completedCount = Object.values(localCheckins).filter(Boolean).length;
   const totalExercicios = exercicios?.length || 0;
+  const completedCount = exercicios
+    ? exercicios.filter((te) => localCheckins[te.id]).length
+    : 0;
   const progress = totalExercicios > 0 ? (completedCount / totalExercicios) * 100 : 0;
+  const treinoConcluido = totalExercicios > 0 && completedCount === totalExercicios;
 
   const getTreinoTitle = () => {
     if (!treino) return 'Treino';
@@ -120,7 +123,12 @@ export default function TreinoDiaPage() {
         </Button>
 
         {/* Header */}
-        <div className="bg-card rounded-2xl p-6 card-hover">
+        <div
+          className={cn(
+            "bg-card rounded-2xl p-6 card-hover",
+            treinoConcluido && "border border-success/40 ring-1 ring-success/20"
+          )}
+        >
           <div className="flex items-center gap-4 mb-4">
             <div
               className={cn(
@@ -134,7 +142,14 @@ export default function TreinoDiaPage() {
               {getIcon()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{getTreinoTitle()}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{getTreinoTitle()}</h1>
+                {treinoConcluido && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-success/10 text-success uppercase tracking-wide">
+                    Concluído
+                  </span>
+                )}
+              </div>
               <p className="text-muted-foreground">
                 {treino ? tipoDiaLabels[treino.tipo_dia] : 'Sem treino definido'}
               </p>
@@ -223,7 +238,7 @@ export default function TreinoDiaPage() {
               ))}
             </div>
 
-            {progress === 100 && (
+            {treinoConcluido && (
               <div className="bg-success/10 border border-success/20 rounded-xl p-6 text-center animate-fade-in">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-success" />
                 <h3 className="text-lg font-semibold text-success mb-1">
