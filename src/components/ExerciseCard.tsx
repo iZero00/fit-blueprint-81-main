@@ -22,14 +22,16 @@ export function ExerciseCard({
   onToggleFeito,
 }: ExerciseCardProps) {
   const [showVideo, setShowVideo] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const videoId = getYoutubeId(exercicio.video_youtube_url);
+  const showDetails = !feito || isExpanded;
 
   return (
     <div
       className={cn(
         'card-hover bg-card rounded-xl p-4 transition-all duration-300',
-        feito && 'opacity-60'
+        feito && !isExpanded && 'opacity-60'
       )}
     >
       <div className="flex items-start gap-4">
@@ -49,13 +51,28 @@ export function ExerciseCard({
             >
               {exercicio.nome}
             </h3>
-            <span className="shrink-0 px-2 py-0.5 bg-secondary text-secondary-foreground text-xs font-medium rounded-md">
-              {exercicio.grupo_muscular}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 px-2 py-0.5 bg-secondary text-secondary-foreground text-xs font-medium rounded-md">
+                {exercicio.grupo_muscular}
+              </span>
+              {feito && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-0.5 hover:bg-muted rounded-full transition-colors"
+                  aria-label={isExpanded ? "Recolher detalhes" : "Expandir detalhes"}
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
-          {!feito && (
-            <>
+          {showDetails && (
+            <div className="animate-in slide-in-from-top-2 duration-200">
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
                 <div className="flex items-center gap-1.5">
                   <RotateCcw className="h-4 w-4" />
@@ -112,7 +129,7 @@ export function ExerciseCard({
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
