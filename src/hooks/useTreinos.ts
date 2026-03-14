@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 export type DiaSemana = 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo';
@@ -67,11 +68,21 @@ export function useTreinosDia(alunoId?: string) {
 
       if (error) throw error;
 
+      type TreinoDiaRow = Tables<'treinos_dia'> & {
+        treino_exercicios?: Array<{
+          id: string;
+          tipo: Tables<'treino_exercicios'>['tipo'] | null;
+          exercicio: { grupo_muscular: string | null } | null;
+        }> | null;
+      };
+
+      const rows = (data || []) as unknown as TreinoDiaRow[];
+
       // Calculate and populate grupo_muscular dynamically based on exercises
-      const treinosCalculados = data.map((treino: any) => {
+      const treinosCalculados = rows.map((treino) => {
         const grupos = new Set<string>();
         if (treino.treino_exercicios) {
-          treino.treino_exercicios.forEach((te: any) => {
+          treino.treino_exercicios.forEach((te) => {
             if (
               (te.tipo === undefined || te.tipo === null || te.tipo === 'exercicio') &&
               te.exercicio?.grupo_muscular
@@ -113,12 +124,17 @@ export function useTreinoExercicios(treinoDiaId?: string) {
         .order('ordem');
 
       if (error) throw error;
-      const rows = (data || []) as any[];
-      const normalized = rows.map((row) => ({
-        tipo: row.tipo || 'exercicio',
+
+      type TreinoExercicioRow = Tables<'treino_exercicios'> & {
+        exercicio: Tables<'exercicios'> | null;
+      };
+
+      const rows = (data || []) as unknown as TreinoExercicioRow[];
+
+      return rows.map((row) => ({
         ...row,
-      }));
-      return normalized as TreinoExercicio[];
+        tipo: (row.tipo || 'exercicio') as TreinoExercicio['tipo'],
+      })) as TreinoExercicio[];
     },
     enabled: !!treinoDiaId,
   });
@@ -169,7 +185,7 @@ export function useUpsertTreinoDia() {
       const { ordem: _ordemInsert, ...toInsert } = treino;
       const { data, error } = await supabase
         .from('treinos_dia')
-        .insert(toInsert as any) // Type assertion needed for optional id
+        .insert(toInsert as TablesInsert<'treinos_dia'>)
         .select()
         .single();
 

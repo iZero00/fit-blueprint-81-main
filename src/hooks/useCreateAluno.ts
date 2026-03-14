@@ -48,9 +48,10 @@ export function useCreateAluno() {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       toast.success('Aluno criado com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error(error);
-      toast.error(error.message || 'Erro ao criar aluno');
+      const message = error instanceof Error ? error.message : 'Erro ao criar aluno';
+      toast.error(message);
     },
   });
 }

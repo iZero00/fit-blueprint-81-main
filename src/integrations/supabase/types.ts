@@ -214,6 +214,7 @@ export type Database = {
           repeticoes: string
           series: string
           treino_dia_id: string
+          tipo: "aquecimento" | "exercicio" | "cardio" | null
         }
         Insert: {
           created_at?: string
@@ -224,6 +225,7 @@ export type Database = {
           repeticoes?: string
           series?: string
           treino_dia_id: string
+          tipo?: "aquecimento" | "exercicio" | "cardio" | null
         }
         Update: {
           created_at?: string
@@ -234,6 +236,7 @@ export type Database = {
           repeticoes?: string
           series?: string
           treino_dia_id?: string
+          tipo?: "aquecimento" | "exercicio" | "cardio" | null
         }
         Relationships: [
           {
@@ -262,6 +265,7 @@ export type Database = {
           id: string
           tipo_dia: Database["public"]["Enums"]["tipo_dia"]
           ordem: number | null
+          observacoes: string | null
           updated_at: string
         }
         Insert: {
@@ -273,6 +277,7 @@ export type Database = {
           id?: string
           tipo_dia?: Database["public"]["Enums"]["tipo_dia"]
           ordem?: number | null
+          observacoes?: string | null
           updated_at?: string
         }
         Update: {
@@ -284,6 +289,7 @@ export type Database = {
           id?: string
           tipo_dia?: Database["public"]["Enums"]["tipo_dia"]
           ordem?: number | null
+          observacoes?: string | null
           updated_at?: string
         }
         Relationships: [

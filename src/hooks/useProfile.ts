@@ -92,7 +92,7 @@ export function useDeleteAluno() {
 
       if (treinosError) throw treinosError;
 
-      const treinoIds = (treinos || []).map((t: any) => t.id);
+      const treinoIds = (treinos || []).map((t) => t.id);
 
       if (treinoIds.length > 0) {
         const { error: checkinsError } = await supabase

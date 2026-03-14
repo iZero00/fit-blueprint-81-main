@@ -270,9 +270,11 @@ export default function AdminTreinos() {
         observacoes: null,
         ordem: getNextOrdem(),
       });
-      if (created && typeof created === 'object' && 'id' in created) {
-        setSelectedTreinoId((created as any).id);
-      }
+      const createdId =
+        created && typeof created === 'object' && 'id' in created
+          ? (created as { id?: string }).id
+          : undefined;
+      if (createdId) setSelectedTreinoId(createdId);
     } catch (error) {
       // Erro tratado no hook
     }

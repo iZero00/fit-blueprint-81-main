@@ -259,7 +259,7 @@ export default function AdminAlunos() {
       peso_kg: aluno.peso_kg || undefined,
       altura_cm: aluno.altura_cm || undefined,
       sexo: (aluno.sexo as "masculino" | "feminino") || undefined,
-      nivel_atividade: (aluno.nivel_atividade as any) || undefined,
+      nivel_atividade: aluno.nivel_atividade ?? undefined,
       observacoes_treino: aluno.observacoes_treino || '',
     });
     setIsEditOpen(true);

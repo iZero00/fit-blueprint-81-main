@@ -42,12 +42,17 @@ export function useCreateGrupoMuscular() {
       queryClient.invalidateQueries({ queryKey: ['grupos_musculares'] });
       toast.success('Grupo muscular criado com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error(error);
-      if (error?.code === '23505') {
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? (error as { code?: string }).code
+          : undefined;
+      const message = error instanceof Error ? error.message : 'Erro ao criar grupo muscular';
+      if (code === '23505') {
         toast.error('Já existe um grupo muscular com este nome.');
       } else {
-        toast.error(error.message || 'Erro ao criar grupo muscular');
+        toast.error(message);
       }
     },
   });
@@ -73,12 +78,17 @@ export function useUpdateGrupoMuscular() {
       queryClient.invalidateQueries({ queryKey: ['grupos_musculares'] });
       toast.success('Grupo muscular atualizado com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error(error);
-      if (error?.code === '23505') {
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? (error as { code?: string }).code
+          : undefined;
+      const message = error instanceof Error ? error.message : 'Erro ao atualizar grupo muscular';
+      if (code === '23505') {
         toast.error('Já existe um grupo muscular com este nome.');
       } else {
-        toast.error(error.message || 'Erro ao atualizar grupo muscular');
+        toast.error(message);
       }
     },
   });
@@ -100,9 +110,10 @@ export function useDeleteGrupoMuscular() {
       queryClient.invalidateQueries({ queryKey: ['grupos_musculares'] });
       toast.success('Grupo muscular excluído com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error(error);
-      toast.error(error.message || 'Erro ao excluir grupo muscular');
+      const message = error instanceof Error ? error.message : 'Erro ao excluir grupo muscular';
+      toast.error(message);
     },
   });
 }
